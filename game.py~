@@ -11,30 +11,27 @@ class Game:
         self.screen = pygame.display.set_mode((screen_info.current_w, screen_info.current_h), pygame.FULLSCREEN)
         self.clock = pygame.time.Clock()
 
-        self.TILE_SIZE = 64  # Scaled up from 32
+        self.TILE_SIZE = 64   # velkost tile
         self.floor_tiles = [
-            pygame.transform.scale(pygame.image.load(f"assets/floor{i}.png"), (self.TILE_SIZE, self.TILE_SIZE))
+            pygame.transform.scale(pygame.image.load(f"assets/map/floor{i}.png"), (self.TILE_SIZE, self.TILE_SIZE))
             for i in range(1, 4)]
         self.wall_tiles = [
-            pygame.transform.scale(pygame.image.load(f"assets/wall{i}.png"), (self.TILE_SIZE, self.TILE_SIZE))
+            pygame.transform.scale(pygame.image.load(f"assets/map/wall{i}.png"), (self.TILE_SIZE, self.TILE_SIZE))
             for i in range(1, 5)]
 
         self.create_map()
         self.player = Player(3 * self.TILE_SIZE, 3 * self.TILE_SIZE)
         self.camera_x = 0
         self.camera_y = 0
+
         self.enemies = []
         self.projectiles = []
-        self.player_element = "fire"  # Starting element
+        self.player_element = "fire" # default element
         self.spawn_timer = 0
         self.spawn_delay = 180
-
-        self.spawn_points = [
-            (5 * self.TILE_SIZE, 12 * self.TILE_SIZE),  # Open area in middle left
-            (45 * self.TILE_SIZE, 12 * self.TILE_SIZE),  # Open area in middle right
-            (25 * self.TILE_SIZE, 24 * self.TILE_SIZE),  # Open area in bottom middle
-            (25 * self.TILE_SIZE, 5 * self.TILE_SIZE)  # Open area in top middle
-        ]
+        self.can_shoot = True
+        self.shoot_cooldown = 300
+        self.last_shot_time = 0
 
     def create_map(self):
         self.walls = []
@@ -80,11 +77,25 @@ class Game:
                     self.walls.append(pygame.Rect(x * self.TILE_SIZE, y * self.TILE_SIZE,
                                                   self.TILE_SIZE, self.TILE_SIZE))
 
+    def get_random_spawn_position(self):
+        while True:
+            # nahodna pozicia v mape
+            x = random.randint(1, len(self.layout[0]) - 2) * self.TILE_SIZE
+            y = random.randint(1, len(self.layout) - 2) * self.TILE_SIZE
+
+            # test rect pre poziciu
+            test_rect = pygame.Rect(x, y, self.TILE_SIZE, self.TILE_SIZE)
+
+            # pozicia nesmie byt v stene
+            if not any(test_rect.colliderect(wall) for wall in self.walls):
+                if self.layout[y // self.TILE_SIZE][x // self.TILE_SIZE] != 'W':
+                    return (x, y)
+
     def spawn_enemy(self):
         if len(self.enemies) < 10 and self.spawn_timer <= 0:
-            spawn_point = random.choice(self.spawn_points)
+            spawn_pos = self.get_random_spawn_position()
             element = random.choice(["fire", "water", "ground", "air"])
-            self.enemies.append(Enemy(*spawn_point, element))
+            self.enemies.append(Enemy(*spawn_pos, element))
             self.spawn_timer = self.spawn_delay
 
     def handle_input(self):
@@ -97,7 +108,7 @@ class Game:
         if keys[pygame.K_ESCAPE]:
             return False
 
-        # Element switching
+        # prepiananie elementov
         if keys[pygame.K_1]:
             self.player_element = "fire"
         elif keys[pygame.K_2]:
@@ -107,8 +118,9 @@ class Game:
         elif keys[pygame.K_4]:
             self.player_element = "air"
 
-        # Mouse input for shooting
-        if pygame.mouse.get_pressed()[0]:
+        # strielanie
+        current_time = pygame.time.get_ticks()
+        if pygame.mouse.get_pressed()[0] and self.can_shoot:
             mouse_x, mouse_y = pygame.mouse.get_pos()
             target_x = mouse_x + self.camera_x
             target_y = mouse_y + self.camera_y
@@ -119,24 +131,31 @@ class Game:
                 target_y,
                 self.player_element
             ))
+            self.last_shot_time = current_time
+            self.can_shoot = False
+
+        # cooldown pre strelbu
+        if not self.can_shoot:
+            if current_time - self.last_shot_time >= self.shoot_cooldown:
+                self.can_shoot = True
 
         return True
 
     def update(self):
-        # Update enemies
+        # posunut nepriatelov
         for enemy in self.enemies[:]:
             enemy.move_towards_player(
                 (self.player.rect.x, self.player.rect.y),
                 self.walls
             )
 
-        # Update projectiles
+        # posunut strely
         for projectile in self.projectiles[:]:
             projectile.update()
             if projectile.hits_wall(self.walls):
                 self.projectiles.remove(projectile)
             else:
-                # Check enemy hits
+                # kontrola zasahu
                 for enemy in self.enemies[:]:
                     if projectile.rect.colliderect(enemy.rect):
                         if self.is_effective_against(projectile.element_type, enemy.element_type):
@@ -144,7 +163,7 @@ class Game:
                         self.projectiles.remove(projectile)
                         break
 
-        # Spawn enemies
+        # spawn enemy
         self.spawn_timer -= 1
         self.spawn_enemy()
 
@@ -160,40 +179,31 @@ class Game:
     def draw(self):
         self.screen.fill((0, 0, 0))
 
-        # Draw floor and walls
+        # vykreslit dlazku a steny
         for y, row in enumerate(self.layout):
             for x, char in enumerate(row):
                 screen_x = x * self.TILE_SIZE - self.camera_x
                 screen_y = y * self.TILE_SIZE - self.camera_y
 
-                # Only draw tiles that are visible on screen
+                # vykreslit len viditelne tiles
                 if (-self.TILE_SIZE <= screen_x <= self.screen.get_width() and
                         -self.TILE_SIZE <= screen_y <= self.screen.get_height()):
                     if char.isdigit():
                         self.screen.blit(self.floor_tiles[int(char) - 1], (screen_x, screen_y))
+                    elif char == '.':  # podlaha
+                        self.screen.blit(self.floor_tiles[0], (screen_x, screen_y))
                     elif char == 'W':
                         wall_type = ((x + y) % 4)
                         self.screen.blit(self.wall_tiles[wall_type], (screen_x, screen_y))
 
-        # Draw player
-        pygame.draw.rect(self.screen, (255, 0, 0),
-        pygame.Rect(self.player.rect.x - self.camera_x,
-        self.player.rect.y - self.camera_y,
-        self.TILE_SIZE, self.TILE_SIZE))
+        # vykreslit hraca
+        self.player.draw(self.screen, self.camera_x, self.camera_y)
 
-        # Draw enemies
+        # vykreslit nepriatelov
         for enemy in self.enemies:
-            pygame.draw.rect(
-                self.screen,
-                enemy.colors[enemy.element_type],
-                pygame.Rect(
-                    enemy.rect.x - self.camera_x,
-                    enemy.rect.y - self.camera_y,
-                    64, 64
-                )
-            )
+            enemy.draw(self.screen, self.camera_x, self.camera_y)
 
-        # Draw projectiles
+        # vykreslit projektily
         for projectile in self.projectiles:
             pygame.draw.rect(
                 self.screen,

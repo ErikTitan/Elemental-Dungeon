@@ -13,7 +13,7 @@ class Projectile:
             "air": (220, 220, 220)
         }
 
-        # vypocet smeru
+        # Calculate direction
         dx = target_x - x
         dy = target_y - y
         dist = math.sqrt(dx * dx + dy * dy)
