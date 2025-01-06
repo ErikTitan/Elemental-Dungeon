@@ -1,6 +1,4 @@
 import pygame
-
-
 class Player:
     def __init__(self, x, y):
         self.rect = pygame.Rect(x, y, 64, 64)  # Scaled to match tile size

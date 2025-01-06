@@ -1,6 +1,8 @@
 import pygame
 from player import Player
-
+from enemy import Enemy
+from projectile import Projectile
+import random
 
 class Game:
     def __init__(self):
@@ -9,7 +11,6 @@ class Game:
         self.screen = pygame.display.set_mode((screen_info.current_w, screen_info.current_h), pygame.FULLSCREEN)
         self.clock = pygame.time.Clock()
 
-        # Scale tiles up for better visibility
         self.TILE_SIZE = 64  # Scaled up from 32
         self.floor_tiles = [
             pygame.transform.scale(pygame.image.load(f"assets/floor{i}.png"), (self.TILE_SIZE, self.TILE_SIZE))
@@ -19,10 +20,21 @@ class Game:
             for i in range(1, 5)]
 
         self.create_map()
-        # Spawn player in first room
         self.player = Player(3 * self.TILE_SIZE, 3 * self.TILE_SIZE)
         self.camera_x = 0
         self.camera_y = 0
+        self.enemies = []
+        self.projectiles = []
+        self.player_element = "fire"  # Starting element
+        self.spawn_timer = 0
+        self.spawn_delay = 180
+
+        self.spawn_points = [
+            (5 * self.TILE_SIZE, 12 * self.TILE_SIZE),  # Open area in middle left
+            (45 * self.TILE_SIZE, 12 * self.TILE_SIZE),  # Open area in middle right
+            (25 * self.TILE_SIZE, 24 * self.TILE_SIZE),  # Open area in bottom middle
+            (25 * self.TILE_SIZE, 5 * self.TILE_SIZE)  # Open area in top middle
+        ]
 
     def create_map(self):
         self.walls = []
@@ -40,7 +52,7 @@ class Game:
             "W........WW........................WWWWWWWWWWWWWWWWWWWWWWWW...WWW",
             "W........WWWWWWWWWWWWWWWWWWWWW..................................W",
             "W...............................................................W",
-            "W.......................................WWWWWWWWWWWWWWWWWWWW....W",
+            "W........................................WWWWWWWWWWWWWWWWWWW....W",
             "WWWWWWWWWWWWWWWWWWWWWWWWWWWWWW........W33333333333333333333W....W",
             "W11111111111111111111W................W33333333333333333333W....W",
             "W11111111111111111111W................W33333333333333333333W....W",
@@ -68,19 +80,82 @@ class Game:
                     self.walls.append(pygame.Rect(x * self.TILE_SIZE, y * self.TILE_SIZE,
                                                   self.TILE_SIZE, self.TILE_SIZE))
 
+    def spawn_enemy(self):
+        if len(self.enemies) < 10 and self.spawn_timer <= 0:
+            spawn_point = random.choice(self.spawn_points)
+            element = random.choice(["fire", "water", "ground", "air"])
+            self.enemies.append(Enemy(*spawn_point, element))
+            self.spawn_timer = self.spawn_delay
+
     def handle_input(self):
         keys = pygame.key.get_pressed()
+        dx = (keys[pygame.K_d] - keys[pygame.K_a]) * self.player.speed
+        dy = (keys[pygame.K_s] - keys[pygame.K_w]) * self.player.speed
+        self.camera_x = self.player.rect.x - self.screen.get_width() // 2
+        self.camera_y = self.player.rect.y - self.screen.get_height() // 2
+        self.player.move(dx, dy, self.walls)
         if keys[pygame.K_ESCAPE]:
             return False
 
-        dx = (keys[pygame.K_d] - keys[pygame.K_a]) * self.player.speed
-        dy = (keys[pygame.K_s] - keys[pygame.K_w]) * self.player.speed
-        self.player.move(dx, dy, self.walls)
+        # Element switching
+        if keys[pygame.K_1]:
+            self.player_element = "fire"
+        elif keys[pygame.K_2]:
+            self.player_element = "water"
+        elif keys[pygame.K_3]:
+            self.player_element = "ground"
+        elif keys[pygame.K_4]:
+            self.player_element = "air"
 
-        # Camera follows player with some zoom
-        self.camera_x = self.player.rect.x - self.screen.get_width() // 2
-        self.camera_y = self.player.rect.y - self.screen.get_height() // 2
+        # Mouse input for shooting
+        if pygame.mouse.get_pressed()[0]:
+            mouse_x, mouse_y = pygame.mouse.get_pos()
+            target_x = mouse_x + self.camera_x
+            target_y = mouse_y + self.camera_y
+            self.projectiles.append(Projectile(
+                self.player.rect.centerx,
+                self.player.rect.centery,
+                target_x,
+                target_y,
+                self.player_element
+            ))
+
         return True
+
+    def update(self):
+        # Update enemies
+        for enemy in self.enemies[:]:
+            enemy.move_towards_player(
+                (self.player.rect.x, self.player.rect.y),
+                self.walls
+            )
+
+        # Update projectiles
+        for projectile in self.projectiles[:]:
+            projectile.update()
+            if projectile.hits_wall(self.walls):
+                self.projectiles.remove(projectile)
+            else:
+                # Check enemy hits
+                for enemy in self.enemies[:]:
+                    if projectile.rect.colliderect(enemy.rect):
+                        if self.is_effective_against(projectile.element_type, enemy.element_type):
+                            self.enemies.remove(enemy)
+                        self.projectiles.remove(projectile)
+                        break
+
+        # Spawn enemies
+        self.spawn_timer -= 1
+        self.spawn_enemy()
+
+    def is_effective_against(self, attacker, defender):
+        effectiveness = {
+            "fire": "water",
+            "water": "fire",
+            "ground": "air",
+            "air": "ground"
+        }
+        return effectiveness[attacker] == defender
 
     def draw(self):
         self.screen.fill((0, 0, 0))
@@ -102,9 +177,33 @@ class Game:
 
         # Draw player
         pygame.draw.rect(self.screen, (255, 0, 0),
-                         pygame.Rect(self.player.rect.x - self.camera_x,
-                                     self.player.rect.y - self.camera_y,
-                                     self.TILE_SIZE, self.TILE_SIZE))
+        pygame.Rect(self.player.rect.x - self.camera_x,
+        self.player.rect.y - self.camera_y,
+        self.TILE_SIZE, self.TILE_SIZE))
+
+        # Draw enemies
+        for enemy in self.enemies:
+            pygame.draw.rect(
+                self.screen,
+                enemy.colors[enemy.element_type],
+                pygame.Rect(
+                    enemy.rect.x - self.camera_x,
+                    enemy.rect.y - self.camera_y,
+                    64, 64
+                )
+            )
+
+        # Draw projectiles
+        for projectile in self.projectiles:
+            pygame.draw.rect(
+                self.screen,
+                projectile.colors[projectile.element_type],
+                pygame.Rect(
+                    projectile.rect.x - self.camera_x,
+                    projectile.rect.y - self.camera_y,
+                    16, 16
+                )
+            )
 
         pygame.display.flip()
 
@@ -116,6 +215,7 @@ class Game:
                     running = False
 
             running = self.handle_input()
+            self.update()
             self.draw()
             self.clock.tick(60)
 
