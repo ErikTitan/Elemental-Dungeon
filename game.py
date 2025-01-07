@@ -7,6 +7,7 @@ import random
 class Game:
     def __init__(self):
         pygame.init()
+        pygame.mixer.init()
         screen_info = pygame.display.Info()
         self.screen = pygame.display.set_mode((screen_info.current_w, screen_info.current_h), pygame.FULLSCREEN)
         self.clock = pygame.time.Clock()
@@ -57,6 +58,13 @@ class Game:
                                         (self.TILE_SIZE, self.TILE_SIZE)),
             'Y': pygame.transform.scale(pygame.image.load("assets/decorations/chain.png"),
                                         (self.TILE_SIZE, self.TILE_SIZE)),
+        }
+
+        self.shoot_sounds = {
+            "fire": pygame.mixer.Sound("assets/audio/Fire.wav"),
+            "water": pygame.mixer.Sound("assets/audio/Water.wav"),
+            "ground": pygame.mixer.Sound("assets/audio/Ground.wav"),
+            "air": pygame.mixer.Sound("assets/audio/Air.wav")
         }
 
         self.create_map()
@@ -247,6 +255,9 @@ class Game:
                 target_y,
                 self.player_element
             ))
+
+            self.shoot_sounds[self.player_element].play()
+
             self.last_shot_time = current_time
             self.can_shoot = False
 
@@ -344,3 +355,4 @@ class Game:
             self.clock.tick(60)
 
         pygame.quit()
+        pygame.mixer.quit()
