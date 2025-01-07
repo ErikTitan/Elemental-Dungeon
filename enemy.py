@@ -41,24 +41,42 @@ class Enemy:
             self.current_frame = (self.current_frame + 1) % len(self.frames)
             self.animation_timer = current_time
 
-    def move_towards_player(self, player_pos, walls):
-        dx = player_pos[0] - self.rect.x
-        dy = player_pos[1] - self.rect.y
-        dist = math.sqrt(dx * dx + dy * dy)
+    def move_towards_player(self, player_pos, walls, enemies):  # Add enemies parameter
+        player_x, player_y = player_pos
+        dx = player_x - self.rect.x
+        dy = player_y - self.rect.y
+        distance = math.sqrt(dx * dx + dy * dy)
 
-        if dist != 0:
-            dx = dx / dist * self.speed
-            dy = dy / dist * self.speed
+        if distance != 0:
+            # normalizovany smer
+            dx = (dx / distance) * self.speed
+            dy = (dy / distance) * self.speed
 
-            self.rect.x += dx
-            if any(self.rect.colliderect(wall) for wall in walls):
-                self.rect.x -= dx
+        # originalna pozicia pre kolizie
+        original_x = self.rect.x
+        original_y = self.rect.y
 
-            self.rect.y += dy
-            if any(self.rect.colliderect(wall) for wall in walls):
-                self.rect.y -= dy
+        # skus horizontalny pohyb
+        self.rect.x += dx
+        if self.check_collisions(walls, enemies):
+            self.rect.x = original_x
 
-            self.animate()
+        # skus horizontalny pohyb
+        self.rect.y += dy
+        if self.check_collisions(walls, enemies):
+            self.rect.y = original_y
+
+    def check_collisions(self, walls, enemies):
+        # kolizia so stenou
+        if any(self.rect.colliderect(wall) for wall in walls):
+            return True
+
+        # kolizia s enemy
+        for enemy in enemies:
+            if enemy != self and self.rect.colliderect(enemy.rect):
+                return True
+
+        return False
 
     def draw(self, screen, camera_x, camera_y):
         screen.blit(self.frames[self.current_frame],

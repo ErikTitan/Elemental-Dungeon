@@ -13,7 +13,7 @@ class Projectile:
         for i in range(1, 5):
             sprite = pygame.image.load(f"assets/projectiles/{element_type.capitalize()}{i}.png")
             sprite = pygame.transform.scale(sprite, (64, 24))
-            # horiyontal flip
+            # mirror
             sprite = pygame.transform.flip(sprite, True, False)
             self.sprites.append(sprite)
 

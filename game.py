@@ -42,6 +42,23 @@ class Game:
                                         (self.TILE_SIZE, self.TILE_SIZE))
         }
 
+        self.decoration_tiles = {
+            'W': pygame.transform.scale(pygame.image.load("assets/decorations/cobweb.png"),
+                                        (self.TILE_SIZE, self.TILE_SIZE)),
+            'T': pygame.transform.scale(pygame.image.load("assets/decorations/torch1.png"),
+                                        (self.TILE_SIZE, self.TILE_SIZE)),
+            'B': pygame.transform.scale(pygame.image.load("assets/decorations/torch2.png"),
+                                        (self.TILE_SIZE, self.TILE_SIZE)),
+            'V': pygame.transform.scale(pygame.image.load("assets/decorations/bones1.png"),
+                                        (self.TILE_SIZE, self.TILE_SIZE)),
+            'J': pygame.transform.scale(pygame.image.load("assets/decorations/bones2.png"),
+                                        (self.TILE_SIZE, self.TILE_SIZE)),
+            'X': pygame.transform.scale(pygame.image.load("assets/decorations/flag.png"),
+                                        (self.TILE_SIZE, self.TILE_SIZE)),
+            'Y': pygame.transform.scale(pygame.image.load("assets/decorations/chain.png"),
+                                        (self.TILE_SIZE, self.TILE_SIZE)),
+        }
+
         self.create_map()
         self.player = Player(3 * self.TILE_SIZE, 3 * self.TILE_SIZE)
         self.camera_x = 0
@@ -100,6 +117,47 @@ class Game:
             "            L..............R          L.........................R",
             "            L..............R          L.........................R",
             "            DHHHHHHHHHHHHHHC          DHHHHHHHHHHHHHHHHHHHHHHHHHC"
+        ]
+
+        # W: cobweb
+        # T: torch1
+        # B: torch2
+        # V: bones1
+        # J: bones2
+        # X: flag
+        # Y: chain
+        self.decoration_layout = [
+            " WT  Y         T       Y   T          W Y     T          Y   T  ",
+            "                                                                 ",
+            "                             V                                   ",
+            "                                                                 ",
+            "                                                                 ",
+            "                                  X                              ",
+            "                                                         J       ",
+            "                  V                                              ",
+            "                                                                 ",
+            "                                                                 ",
+            " W                                                               ",
+            "                                                                 ",
+            "                   J                                             ",
+            " B                           Y   X   Y                           ",
+            "                                               J                 ",
+            "                                                                 ",
+            " B                                                               ",
+            "                                                                 ",
+            "                                                                 ",
+            " B                                                               ",
+            "                       V                                         ",
+            "                                                                 ",
+            "                                                                 ",
+            "                                       B                         ",
+            "                                                                 ",
+            "                                                                 ",
+            "              J                        B               V         ",
+            "                                                                 ",
+            "                                                                 ",
+            "                                       B                         ",
+            "                                                                 "
         ]
 
         self.floor_layout = []
@@ -204,7 +262,8 @@ class Game:
         for enemy in self.enemies[:]:
             enemy.move_towards_player(
                 (self.player.rect.x, self.player.rect.y),
-                self.walls
+                self.walls,
+                self.enemies
             )
 
         # posunut strely
@@ -251,6 +310,13 @@ class Game:
                     self.screen.blit(self.random_wall_tiles[tile][self.wall_layout[y][x]], (screen_x, screen_y))
                 elif tile in self.single_wall_tiles:
                     self.screen.blit(self.single_wall_tiles[tile], (screen_x, screen_y))
+
+        for y, row in enumerate(self.decoration_layout):
+            for x, decoration in enumerate(row):
+                if decoration in self.decoration_tiles:
+                    screen_x = x * self.TILE_SIZE - self.camera_x
+                    screen_y = y * self.TILE_SIZE - self.camera_y
+                    self.screen.blit(self.decoration_tiles[decoration], (screen_x, screen_y))
 
         # Draw player
         self.player.draw(self.screen, self.camera_x, self.camera_y)
