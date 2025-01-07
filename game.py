@@ -13,18 +13,34 @@ class Game:
 
         self.BASE_TILE_SIZE = 16
         self.TILE_SIZE = 64   # velkost tile
+
         self.floor_tiles = [
             pygame.transform.scale(
                 pygame.image.load(f"assets/map/floor{i}.png"),
                 (self.TILE_SIZE, self.TILE_SIZE)
             ) for i in range(1, 5)
         ]
-        self.wall_tiles = [
-            pygame.transform.scale(
-                pygame.image.load(f"assets/map/wall{i}.png"),
-                (self.TILE_SIZE, self.TILE_SIZE)
-            ) for i in range(1, 5)
-        ]
+        self.random_wall_tiles = {
+            'T': [pygame.transform.scale(pygame.image.load(f"assets/map/wall{i}.png"),
+                                         (self.TILE_SIZE, self.TILE_SIZE)) for i in range(1, 5)],
+            'H': [pygame.transform.scale(pygame.image.load(f"assets/map/wall_half{i}.png"),
+                                         (self.TILE_SIZE, self.TILE_SIZE)) for i in range(1, 3)]
+        }
+
+        self.single_wall_tiles = {
+            'L': pygame.transform.scale(pygame.image.load("assets/map/wall_left_angle.png"),
+                                        (self.TILE_SIZE, self.TILE_SIZE)),
+            'R': pygame.transform.scale(pygame.image.load("assets/map/wall_right_angle.png"),
+                                        (self.TILE_SIZE, self.TILE_SIZE)),
+            'C': pygame.transform.scale(pygame.image.load("assets/map/TL_single_corner.png"),
+                                        (self.TILE_SIZE, self.TILE_SIZE)),
+            'D': pygame.transform.scale(pygame.image.load("assets/map/TR_single_corner.png"),
+                                        (self.TILE_SIZE, self.TILE_SIZE)),
+            'E': pygame.transform.scale(pygame.image.load("assets/map/TR_corner.png"),
+                                        (self.TILE_SIZE, self.TILE_SIZE)),
+            'F': pygame.transform.scale(pygame.image.load("assets/map/TL_corner.png"),
+                                        (self.TILE_SIZE, self.TILE_SIZE))
+        }
 
         self.create_map()
         self.player = Player(3 * self.TILE_SIZE, 3 * self.TILE_SIZE)
@@ -43,81 +59,95 @@ class Game:
     def create_map(self):
         self.walls = []
 
-        # Create the basic layout
+        # T: Top wall (full wall)
+        # L: Left angled wall
+        # R: Right angled wall
+        # H: Half wall
+        # C: Top left single corner
+        # D: Top right single corner
+        # E: Top right corner
+        # F: Top left corner
+        # .: Floor
         self.layout = [
-            "WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW",
-            "W...............................................................W",
-            "W...............................................................W",
-            "W...............................................................W",
-            "W...............................................................W",
-            "W....................WWWWWWWWWW...WWWWWWWWWWWW..................W",
-            "W...............................................................W",
-            "W...............................................................W",
-            "WWWWWW...WW......................................................W",
-            "W........WW......................................................W",
-            "W........WWWWWWWWWWWWWWWWWWWWW....................................W",
-            "W.................................................................W",
-            "W..........................................WWWWWWWWWWWWWWWWWWW....W",
-            "WWWWWWWWWWWWWWWWWWWWWWWWWWWWWW........W...................W....W",
-            "W..........................W........W...................W....W",
-            "W..........................W........W...................W....W",
-            "W..........................W........W...................W....W",
-            "W..........................WWWWWWWWW...................W....W",
-            "W..........................W........W...................W....W",
-            "W..........................W........W...................W....W",
-            "W..........................W........W...................W....W",
-            "WWWWWWWWWWWWWWWWWWWWWW....WWWWWWWWWWWWWWWWWWWWWWWWWWWWWW....W",
-            "W...............................................................W",
-            "W...............................................................W",
-            "W...............................................................W",
-            "W.WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW................W",
-            "W.W.........................................................W...W",
-            "W.W.........................................................W...W",
-            "W.W.........................................................W...W",
-            "W.W.........................................................W...W",
-            "WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW"
+            "LTTTTTTTTTTTTTTTTTTTTTTTTTTTTTR      LTTTTTTTTTTTTTTTTTTTTTTTTTTR",
+            "L.............................R      L..........................R",
+            "L.............................R      L..........................R",
+            "L.............................R      L..........................R",
+            "L.............................R      L..........................R",
+            "L.............................TTTTTTTT..........................R",
+            "L...............................................................R",
+            "L...............................................................R",
+            "DHHHHHHHHHE.....................................................R",
+            "          L...............FHHHHHHHHHHHHHHE......................R",
+            "LTTTTTTTTTT...............R              L......................R",
+            "L.........................R              L......................R",
+            "L.........................R              L...........FHHHHHHHHHHC",
+            "L.........................TTTTTTTTTTTTTTTT...........R           ",
+            "L....................................................R           ",
+            "L....................................................TTTTTTTTTTTR",
+            "L...............................................................R",
+            "L...............................................................R",
+            "L...............................................................R",
+            "L...............................................................R",
+            "L...............................................................R",
+            "L...............................................................R",
+            "DHHHHHHHHHHHE..............FHHHHHHHHHHE.........................R",
+            "            L..............R          L.........................R",
+            "            L..............R          L.........................R",
+            "            L..............R          L.........................R",
+            "            L..............R          L.........................R",
+            "            L..............R          L.........................R",
+            "            L..............R          L.........................R",
+            "            L..............R          L.........................R",
+            "            DHHHHHHHHHHHHHHC          DHHHHHHHHHHHHHHHHHHHHHHHHHC"
         ]
 
-        width = len(self.layout[0])
-        self.layout = [row.ljust(width, '.') for row in self.layout]
-
-        # Create random floor layout
         self.floor_layout = []
-        for y in range(len(self.layout)):
-            row = []
-            for x in range(len(self.layout[0])):
-                if self.layout[y][x] != 'W':
-                    row.append(random.randint(0, 3))  # Random floor tile (0-3 for floor1-4)
-                else:
-                    row.append(-1)  # No floor under walls
-            self.floor_layout.append(row)
-
-        # Create random wall layout
         self.wall_layout = []
-        for y in range(len(self.layout)):
-            row = []
-            for x in range(len(self.layout[0])):
-                if self.layout[y][x] == 'W':
-                    row.append(random.randint(0, 3))  # Random wall tile (0-3 for wall1-4)
+
+        for y, row in enumerate(self.layout):
+            floor_row = []
+            wall_row = []
+            for x, tile in enumerate(row):
+                # podlaha
+                if tile in '.LRHTCD':
+                    floor_row.append(random.randint(0, len(self.floor_tiles) - 1))
+                else:
+                    floor_row.append(-1)
+
+                # steny
+                if tile in self.random_wall_tiles:
+                    wall_row.append(random.randint(0, len(self.random_wall_tiles[tile]) - 1))
+                    self.walls.append(pygame.Rect(x * self.TILE_SIZE, y * self.TILE_SIZE,
+                                                  self.TILE_SIZE, self.TILE_SIZE))
+                # single steny
+                elif tile in self.single_wall_tiles:
+                    wall_row.append(0)
                     self.walls.append(pygame.Rect(x * self.TILE_SIZE, y * self.TILE_SIZE,
                                                   self.TILE_SIZE, self.TILE_SIZE))
                 else:
-                    row.append(-1)
-            self.wall_layout.append(row)
+                    wall_row.append(-1)
+
+            self.floor_layout.append(floor_row)
+            self.wall_layout.append(wall_row)
 
     def get_random_spawn_position(self):
         while True:
-            # nahodna pozicia v mape
-            x = random.randint(1, len(self.layout[0]) - 2) * self.TILE_SIZE
-            y = random.randint(1, len(self.layout) - 2) * self.TILE_SIZE
+            x = random.randint(0, len(self.layout[0]) - 1) * self.TILE_SIZE
+            y = random.randint(0, len(self.layout) - 1) * self.TILE_SIZE
 
-            # test rect pre poziciu
-            test_rect = pygame.Rect(x, y, self.TILE_SIZE, self.TILE_SIZE)
+            # tile pozicia
+            tile_x = x // self.TILE_SIZE
+            tile_y = y // self.TILE_SIZE
 
-            # pozicia nesmie byt v stene
-            if not any(test_rect.colliderect(wall) for wall in self.walls):
-                if self.layout[y // self.TILE_SIZE][x // self.TILE_SIZE] != 'W':
-                    return (x, y)
+            # validacia pozicie
+            if (tile_y < len(self.layout) and
+                    tile_x < len(self.layout[tile_y]) and
+                    self.layout[tile_y][tile_x] == '.'):
+
+                test_rect = pygame.Rect(x, y, self.TILE_SIZE, self.TILE_SIZE)
+                if not any(test_rect.colliderect(wall) for wall in self.walls):
+                    return x, y
 
     def spawn_enemy(self):
         if len(self.enemies) < 10 and self.spawn_timer <= 0:
@@ -207,19 +237,20 @@ class Game:
     def draw(self):
         self.screen.fill((37, 19, 26))
 
-        # Draw all floors and walls
-        for y in range(len(self.layout)):
-            for x in range(len(self.layout[0])):
+        for y, row in enumerate(self.layout):
+            for x, tile in enumerate(row):
                 screen_x = x * self.TILE_SIZE - self.camera_x
                 screen_y = y * self.TILE_SIZE - self.camera_y
 
-                # Draw floor if present
+                # Draw floor
                 if self.floor_layout[y][x] != -1:
                     self.screen.blit(self.floor_tiles[self.floor_layout[y][x]], (screen_x, screen_y))
 
-                # Draw wall if present
-                if self.wall_layout[y][x] != -1:
-                    self.screen.blit(self.wall_tiles[self.wall_layout[y][x]], (screen_x, screen_y))
+                # Draw walls
+                if tile in self.random_wall_tiles:
+                    self.screen.blit(self.random_wall_tiles[tile][self.wall_layout[y][x]], (screen_x, screen_y))
+                elif tile in self.single_wall_tiles:
+                    self.screen.blit(self.single_wall_tiles[tile], (screen_x, screen_y))
 
         # Draw player
         self.player.draw(self.screen, self.camera_x, self.camera_y)
@@ -230,15 +261,7 @@ class Game:
 
         # Draw projectiles
         for projectile in self.projectiles:
-            pygame.draw.rect(
-                self.screen,
-                projectile.colors[projectile.element_type],
-                pygame.Rect(
-                    projectile.rect.x - self.camera_x,
-                    projectile.rect.y - self.camera_y,
-                    16, 16
-                )
-            )
+            projectile.draw(self.screen, self.camera_x, self.camera_y)
 
         pygame.display.flip()
 
