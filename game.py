@@ -11,13 +11,20 @@ class Game:
         self.screen = pygame.display.set_mode((screen_info.current_w, screen_info.current_h), pygame.FULLSCREEN)
         self.clock = pygame.time.Clock()
 
+        self.BASE_TILE_SIZE = 16
         self.TILE_SIZE = 64   # velkost tile
         self.floor_tiles = [
-            pygame.transform.scale(pygame.image.load(f"assets/map/floor{i}.png"), (self.TILE_SIZE, self.TILE_SIZE))
-            for i in range(1, 4)]
+            pygame.transform.scale(
+                pygame.image.load(f"assets/map/floor{i}.png"),
+                (self.TILE_SIZE, self.TILE_SIZE)
+            ) for i in range(1, 5)
+        ]
         self.wall_tiles = [
-            pygame.transform.scale(pygame.image.load(f"assets/map/wall{i}.png"), (self.TILE_SIZE, self.TILE_SIZE))
-            for i in range(1, 5)]
+            pygame.transform.scale(
+                pygame.image.load(f"assets/map/wall{i}.png"),
+                (self.TILE_SIZE, self.TILE_SIZE)
+            ) for i in range(1, 5)
+        ]
 
         self.create_map()
         self.player = Player(3 * self.TILE_SIZE, 3 * self.TILE_SIZE)
@@ -36,46 +43,67 @@ class Game:
     def create_map(self):
         self.walls = []
 
+        # Create the basic layout
         self.layout = [
             "WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW",
-            "W11111111WW........WW...........................................W",
-            "W11111111WW........WW........................WWWWWWWWWWWWWWWWWWWW",
-            "W11111111WW........WW........................W222222222222222222W",
-            "W11111111WW........WW........................W222222222222222222W",
-            "W11111111WW........WWWWWWWWWW...WWWWWWWWWWWWWW222222222222222222W",
-            "W11111111WW........................W2222222222222222222222222222W",
-            "W11111111WW........................W2222222222222222222222222222W",
-            "WWWWWW...WW........................W2222222222222222222222222222W",
-            "W........WW........................WWWWWWWWWWWWWWWWWWWWWWWW...WWW",
-            "W........WWWWWWWWWWWWWWWWWWWWW..................................W",
             "W...............................................................W",
-            "W........................................WWWWWWWWWWWWWWWWWWW....W",
-            "WWWWWWWWWWWWWWWWWWWWWWWWWWWWWW........W33333333333333333333W....W",
-            "W11111111111111111111W................W33333333333333333333W....W",
-            "W11111111111111111111W................W33333333333333333333W....W",
-            "W11111111111111111111.................W33333333333333333333W....W",
-            "W11111111111111111111.........WWWWWWWWW33333333333333333333W....W",
-            "W11111111111111111111W........W2222222233333333333333333333W....W",
-            "W11111111111111111111W........W2222222233333333333333333333W....W",
-            "W11111111111111111111W........W2222222233333333333333333333W....W",
-            "WWWWWWWWWWWWWWWWWWWWWW........WWWWWWWWWWWWWWWWWWWWWWWWWWWWWW....W",
+            "W...............................................................W",
+            "W...............................................................W",
+            "W...............................................................W",
+            "W....................WWWWWWWWWW...WWWWWWWWWWWW..................W",
+            "W...............................................................W",
+            "W...............................................................W",
+            "WWWWWW...WW......................................................W",
+            "W........WW......................................................W",
+            "W........WWWWWWWWWWWWWWWWWWWWW....................................W",
+            "W.................................................................W",
+            "W..........................................WWWWWWWWWWWWWWWWWWW....W",
+            "WWWWWWWWWWWWWWWWWWWWWWWWWWWWWW........W...................W....W",
+            "W..........................W........W...................W....W",
+            "W..........................W........W...................W....W",
+            "W..........................W........W...................W....W",
+            "W..........................WWWWWWWWW...................W....W",
+            "W..........................W........W...................W....W",
+            "W..........................W........W...................W....W",
+            "W..........................W........W...................W....W",
+            "WWWWWWWWWWWWWWWWWWWWWW....WWWWWWWWWWWWWWWWWWWWWWWWWWWWWW....W",
             "W...............................................................W",
             "W...............................................................W",
             "W...............................................................W",
             "W.WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW................W",
-            "W.W11111111111111111111111111111111111111111111W................W",
-            "W.W11111111111111111111111111111111111111111111.................W",
-            "W.W11111111111111111111111111111111111111111111.................W",
-            "W.W11111111111111111111111111111111111111111111W................W",
-            "WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW",
+            "W.W.........................................................W...W",
+            "W.W.........................................................W...W",
+            "W.W.........................................................W...W",
+            "W.W.........................................................W...W",
+            "WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW"
         ]
 
-        for y, row in enumerate(self.layout):
-            for x, char in enumerate(row):
-                if char == 'W':
-                    wall_type = ((x + y) % 4) + 1
+        width = len(self.layout[0])
+        self.layout = [row.ljust(width, '.') for row in self.layout]
+
+        # Create random floor layout
+        self.floor_layout = []
+        for y in range(len(self.layout)):
+            row = []
+            for x in range(len(self.layout[0])):
+                if self.layout[y][x] != 'W':
+                    row.append(random.randint(0, 3))  # Random floor tile (0-3 for floor1-4)
+                else:
+                    row.append(-1)  # No floor under walls
+            self.floor_layout.append(row)
+
+        # Create random wall layout
+        self.wall_layout = []
+        for y in range(len(self.layout)):
+            row = []
+            for x in range(len(self.layout[0])):
+                if self.layout[y][x] == 'W':
+                    row.append(random.randint(0, 3))  # Random wall tile (0-3 for wall1-4)
                     self.walls.append(pygame.Rect(x * self.TILE_SIZE, y * self.TILE_SIZE,
                                                   self.TILE_SIZE, self.TILE_SIZE))
+                else:
+                    row.append(-1)
+            self.wall_layout.append(row)
 
     def get_random_spawn_position(self):
         while True:
@@ -108,7 +136,7 @@ class Game:
         if keys[pygame.K_ESCAPE]:
             return False
 
-        # prepiananie elementov
+        # prepinanie elementov
         if keys[pygame.K_1]:
             self.player_element = "fire"
         elif keys[pygame.K_2]:
@@ -177,33 +205,30 @@ class Game:
         return effectiveness[attacker] == defender
 
     def draw(self):
-        self.screen.fill((0, 0, 0))
+        self.screen.fill((37, 19, 26))
 
-        # vykreslit dlazku a steny
-        for y, row in enumerate(self.layout):
-            for x, char in enumerate(row):
+        # Draw all floors and walls
+        for y in range(len(self.layout)):
+            for x in range(len(self.layout[0])):
                 screen_x = x * self.TILE_SIZE - self.camera_x
                 screen_y = y * self.TILE_SIZE - self.camera_y
 
-                # vykreslit len viditelne tiles
-                if (-self.TILE_SIZE <= screen_x <= self.screen.get_width() and
-                        -self.TILE_SIZE <= screen_y <= self.screen.get_height()):
-                    if char.isdigit():
-                        self.screen.blit(self.floor_tiles[int(char) - 1], (screen_x, screen_y))
-                    elif char == '.':  # podlaha
-                        self.screen.blit(self.floor_tiles[0], (screen_x, screen_y))
-                    elif char == 'W':
-                        wall_type = ((x + y) % 4)
-                        self.screen.blit(self.wall_tiles[wall_type], (screen_x, screen_y))
+                # Draw floor if present
+                if self.floor_layout[y][x] != -1:
+                    self.screen.blit(self.floor_tiles[self.floor_layout[y][x]], (screen_x, screen_y))
 
-        # vykreslit hraca
+                # Draw wall if present
+                if self.wall_layout[y][x] != -1:
+                    self.screen.blit(self.wall_tiles[self.wall_layout[y][x]], (screen_x, screen_y))
+
+        # Draw player
         self.player.draw(self.screen, self.camera_x, self.camera_y)
 
-        # vykreslit nepriatelov
+        # Draw enemies
         for enemy in self.enemies:
             enemy.draw(self.screen, self.camera_x, self.camera_y)
 
-        # vykreslit projektily
+        # Draw projectiles
         for projectile in self.projectiles:
             pygame.draw.rect(
                 self.screen,
