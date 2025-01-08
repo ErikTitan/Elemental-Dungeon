@@ -66,13 +66,20 @@ class Game:
             pygame.image.load("assets/HUD/health_bar3.png")  # 3 HP
         ]
 
-        # Scale health bar images if needed
-        health_bar_width = 410  # Adjust these values as needed
+        health_bar_width = 410
         health_bar_height = 355
         self.health_bars = [pygame.transform.scale(img, (health_bar_width, health_bar_height))
                             for img in self.health_bars]
 
-        # Load hit sound
+        # element indicators
+        self.element_indicators = {
+            "fire": pygame.transform.scale(pygame.image.load("assets/projectiles/Fire1.png"), (96, 36)),
+            "water": pygame.transform.scale(pygame.image.load("assets/projectiles/Water1.png"), (96, 36)),
+            "ground": pygame.transform.scale(pygame.image.load("assets/projectiles/Ground1.png"), (96, 36)),
+            "air": pygame.transform.scale(pygame.image.load("assets/projectiles/Air1.png"), (96, 36))
+        }
+
+        # player hit sound
         self.hit_sound = pygame.mixer.Sound("assets/audio/Hit.wav")
         self.hit_sound.set_volume(0.6)
 
@@ -93,6 +100,7 @@ class Game:
         self.font = pygame.font.Font(None, 48)
 
         # Game state
+        self.game_started = False
         self.game_over = False
 
         # loop background music
@@ -111,6 +119,8 @@ class Game:
         self.can_shoot = True
         self.shoot_cooldown = 300
         self.last_shot_time = 0
+
+        self.reset_game()
 
     def create_map(self):
         self.walls = []
@@ -255,15 +265,27 @@ class Game:
 
     def handle_input(self):
         keys = pygame.key.get_pressed()
-        dx = (keys[pygame.K_d] - keys[pygame.K_a]) * self.player.speed
-        dy = (keys[pygame.K_s] - keys[pygame.K_w]) * self.player.speed
-        self.camera_x = self.player.rect.x - self.screen.get_width() // 2
-        self.camera_y = self.player.rect.y - self.screen.get_height() // 2
-        self.player.move(dx, dy, self.walls)
+        if not self.game_over:
+            dx = (keys[pygame.K_d] - keys[pygame.K_a]) * self.player.speed
+            dy = (keys[pygame.K_s] - keys[pygame.K_w]) * self.player.speed
+            self.camera_x = self.player.rect.x - self.screen.get_width() // 2
+            self.camera_y = self.player.rect.y - self.screen.get_height() // 2
+            self.player.move(dx, dy, self.walls)
+
+        # start screen
+        if not self.game_started:
+            if any(keys):
+                self.game_started = True
+                return True
+            return True
+
+        # end scrreen
         if self.game_over:
-            keys = pygame.key.get_pressed()
             if keys[pygame.K_ESCAPE]:
                 return False
+            if keys[pygame.K_r]:
+                self.reset_game()
+                return True
             return True
 
         # prepinanie elementov
@@ -361,6 +383,25 @@ class Game:
         self.background_music.stop()
         self.player.is_alive = False
 
+    def reset_game(self):
+        self.game_over = False
+        self.start_time = pygame.time.get_ticks()
+        self.create_map()
+        self.player = Player(3 * self.TILE_SIZE, 3 * self.TILE_SIZE)
+        self.camera_x = 0
+        self.camera_y = 0
+        self.enemies = []
+        self.projectiles = []
+        self.player_element = "fire"
+        self.spawn_timer = 0
+        self.spawn_delay = 180
+        self.can_shoot = True
+        self.shoot_cooldown = 300
+        self.last_shot_time = 0
+
+        self.background_music.stop()
+        self.background_music.play(loops=-1)
+
     def is_effective_against(self, attacker, defender):
         effectiveness = {
             "fire": "water",
@@ -372,6 +413,23 @@ class Game:
 
     def draw(self):
         self.screen.fill((37, 19, 26))
+
+        # start screen
+        if not self.game_started:
+            font = pygame.font.Font(None, 74)
+            title_text = font.render('Elemental Dungeon', True, (255, 255, 255))
+            start_text = font.render('Press Any Key to Start', True, (255, 255, 255))
+
+            title_rect = title_text.get_rect(center=(self.screen.get_width() // 2,
+                                                     self.screen.get_height() // 2 - 50))
+            start_rect = start_text.get_rect(center=(self.screen.get_width() // 2,
+                                                     self.screen.get_height() // 2 + 50))
+
+            self.screen.blit(title_text, title_rect)
+            self.screen.blit(start_text, start_rect)
+            pygame.display.flip()
+            return
+
         # mapa
         for y, row in enumerate(self.layout):
             for x, tile in enumerate(row):
@@ -412,6 +470,12 @@ class Game:
             timer_text = self.font.render(f"Time: {remaining_time}", True, (255, 255, 255))
             self.screen.blit(timer_text, (20, 100))
 
+            # Element indicator
+            current_element = self.element_indicators[self.player_element]
+            element_text = self.font.render("Current Element:", True, (255, 255, 255))
+            self.screen.blit(element_text, (20, 150))
+            self.screen.blit(current_element, (300, 150))
+
         # Draw health bar
         if self.player.is_alive and not self.game_over:
             current_health_bar = self.health_bars[self.player.current_health - 1]
@@ -426,10 +490,16 @@ class Game:
             self.screen.blit(game_over_text, text_rect)
 
             instruction_font = pygame.font.Font(None, 36)
-            instruction_text = instruction_font.render('Press ESC to quit', True, (255, 255, 255))
-            instruction_rect = instruction_text.get_rect(center=(self.screen.get_width() // 2,
-                                                                 self.screen.get_height() // 2 + 50))
-            self.screen.blit(instruction_text, instruction_rect)
+            quit_text = instruction_font.render('Press ESC to quit', True, (255, 255, 255))
+            restart_text = instruction_font.render('Press R to restart', True, (255, 255, 255))
+
+            quit_rect = quit_text.get_rect(center=(self.screen.get_width() // 2,
+                                                   self.screen.get_height() // 2 + 50))
+            restart_rect = restart_text.get_rect(center=(self.screen.get_width() // 2,
+                                                         self.screen.get_height() // 2 + 90))
+
+            self.screen.blit(quit_text, quit_rect)
+            self.screen.blit(restart_text, restart_rect)
 
         pygame.display.flip()
 

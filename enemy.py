@@ -66,6 +66,8 @@ class Enemy:
         if self.check_collisions(walls, enemies):
             self.rect.y = original_y
 
+        self.animate()
+
     def check_collisions(self, walls, enemies):
         # kolizia so stenou
         if any(self.rect.colliderect(wall) for wall in walls):
