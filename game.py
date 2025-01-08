@@ -328,3 +328,7 @@ class Game:
 
         pygame.quit()
         pygame.mixer.quit()
+
+if __name__ == "__main__":
+    game = Game()
+    game.run()
