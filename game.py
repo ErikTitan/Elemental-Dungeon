@@ -60,6 +60,26 @@ class Game:
                                         (self.TILE_SIZE, self.TILE_SIZE)),
         }
 
+        self.health_bars = [
+            pygame.image.load("assets/HUD/health_bar1.png"),  # 1 HP
+            pygame.image.load("assets/HUD/health_bar2.png"),  # 2 HP
+            pygame.image.load("assets/HUD/health_bar3.png")  # 3 HP
+        ]
+
+        # Scale health bar images if needed
+        health_bar_width = 410  # Adjust these values as needed
+        health_bar_height = 355
+        self.health_bars = [pygame.transform.scale(img, (health_bar_width, health_bar_height))
+                            for img in self.health_bars]
+
+        # Health bar position
+        self.health_bar_x = 10
+        self.health_bar_y = -90
+
+        # Load hit sound
+        self.hit_sound = pygame.mixer.Sound("assets/audio/Hit.wav")
+        self.hit_sound.set_volume(0.6)
+
         self.shoot_sounds = {
             "fire": pygame.mixer.Sound("assets/audio/Fire.wav"),
             "water": pygame.mixer.Sound("assets/audio/Water.wav"),
@@ -269,6 +289,20 @@ class Game:
         return True
 
     def update(self):
+        # update hraca
+        self.player.update()
+        self.player.apply_knockback(self.walls)
+
+        # player-enemy kolizia
+        if self.player.is_alive:
+            for enemy in self.enemies[:]:
+                if self.player.rect.colliderect(enemy.rect):
+                    enemy_pos = (enemy.rect.centerx, enemy.rect.centery)
+                    if self.player.take_damage(enemy_pos):
+                        self.hit_sound.play()
+                    if not self.player.is_alive:
+                        break
+
         # posunut nepriatelov
         for enemy in self.enemies[:]:
             enemy.move_towards_player(
@@ -339,6 +373,19 @@ class Game:
         # Draw projectiles
         for projectile in self.projectiles:
             projectile.draw(self.screen, self.camera_x, self.camera_y)
+
+        # Draw health bar
+        if self.player.is_alive:
+            current_health_bar = self.health_bars[self.player.current_health - 1]
+            self.screen.blit(current_health_bar, (self.health_bar_x, self.health_bar_y))
+
+        # Game over
+        if not self.player.is_alive:
+            font = pygame.font.Font(None, 74)
+            game_over_text = font.render('Game Over', True, (255, 0, 0))
+            text_rect = game_over_text.get_rect(center=(self.screen.get_width() // 2,
+                                                        self.screen.get_height() // 2))
+            self.screen.blit(game_over_text, text_rect)
 
         pygame.display.flip()
 
