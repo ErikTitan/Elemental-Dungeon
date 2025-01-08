@@ -145,7 +145,7 @@ class Game:
         return True
 
     def update(self):
-        if self.game_over:
+        if not self.game_started or self.game_over:
             return
 
         # update hraca
@@ -230,14 +230,31 @@ class Game:
             font = pygame.font.Font(None, 74)
             title_text = font.render('Elemental Dungeon', True, (255, 255, 255))
             start_text = font.render('Press Any Key to Start', True, (255, 255, 255))
+            controls_font = pygame.font.Font(None, 48)  # Using existing font size
 
+            # Controls text
+            move_text = controls_font.render('WASD - Move Character', True, (255, 255, 255))
+            element_text = controls_font.render('1-4 - Switch Elements', True, (255, 255, 255))
+            shoot_text = controls_font.render('Left Mouse Button - Shoot', True, (255, 255, 255))
+
+            # Position calculations
             title_rect = title_text.get_rect(center=(self.screen.get_width() // 2,
-                                                     self.screen.get_height() // 2 - 50))
+                                                     self.screen.get_height() // 2 - 150))
             start_rect = start_text.get_rect(center=(self.screen.get_width() // 2,
-                                                     self.screen.get_height() // 2 + 50))
+                                                     self.screen.get_height() // 2 - 50))
+            move_rect = move_text.get_rect(center=(self.screen.get_width() // 2,
+                                                   self.screen.get_height() // 2 + 50))
+            element_rect = element_text.get_rect(center=(self.screen.get_width() // 2,
+                                                         self.screen.get_height() // 2 + 100))
+            shoot_rect = shoot_text.get_rect(center=(self.screen.get_width() // 2,
+                                                     self.screen.get_height() // 2 + 150))
 
             self.screen.blit(title_text, title_rect)
             self.screen.blit(start_text, start_rect)
+            self.screen.blit(move_text, move_rect)
+            self.screen.blit(element_text, element_rect)
+            self.screen.blit(shoot_text, shoot_rect)
+
             pygame.display.flip()
             return
 
