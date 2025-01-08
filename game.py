@@ -72,10 +72,6 @@ class Game:
         self.health_bars = [pygame.transform.scale(img, (health_bar_width, health_bar_height))
                             for img in self.health_bars]
 
-        # Health bar position
-        self.health_bar_x = 10
-        self.health_bar_y = -90
-
         # Load hit sound
         self.hit_sound = pygame.mixer.Sound("assets/audio/Hit.wav")
         self.hit_sound.set_volume(0.6)
@@ -86,6 +82,21 @@ class Game:
             "ground": pygame.mixer.Sound("assets/audio/Ground.wav"),
             "air": pygame.mixer.Sound("assets/audio/Air.wav")
         }
+
+        # background music
+        self.background_music = pygame.mixer.Sound("assets/audio/Background.wav")
+        self.background_music.set_volume(0.3)
+
+        # Timer
+        self.game_duration = 60
+        self.start_time = pygame.time.get_ticks()
+        self.font = pygame.font.Font(None, 48)
+
+        # Game state
+        self.game_over = False
+
+        # loop background music
+        self.background_music.play(loops=-1)
 
         self.create_map()
         self.player = Player(3 * self.TILE_SIZE, 3 * self.TILE_SIZE)
@@ -249,8 +260,11 @@ class Game:
         self.camera_x = self.player.rect.x - self.screen.get_width() // 2
         self.camera_y = self.player.rect.y - self.screen.get_height() // 2
         self.player.move(dx, dy, self.walls)
-        if keys[pygame.K_ESCAPE]:
-            return False
+        if self.game_over:
+            keys = pygame.key.get_pressed()
+            if keys[pygame.K_ESCAPE]:
+                return False
+            return True
 
         # prepinanie elementov
         if keys[pygame.K_1]:
@@ -289,6 +303,9 @@ class Game:
         return True
 
     def update(self):
+        if self.game_over:
+            return
+
         # update hraca
         self.player.update()
         self.player.apply_knockback(self.walls)
@@ -301,6 +318,7 @@ class Game:
                     if self.player.take_damage(enemy_pos):
                         self.hit_sound.play()
                     if not self.player.is_alive:
+                        self.end_game()
                         break
 
         # posunut nepriatelov
@@ -329,6 +347,20 @@ class Game:
         self.spawn_timer -= 1
         self.spawn_enemy()
 
+    def update_timer(self):
+        elapsed_time = (pygame.time.get_ticks() - self.start_time) // 1000  # Convert to seconds
+        remaining_time = max(0, self.game_duration - elapsed_time)
+
+        if remaining_time == 0 and not self.game_over:
+            self.end_game()
+
+        return remaining_time
+
+    def end_game(self):
+        self.game_over = True
+        self.background_music.stop()
+        self.player.is_alive = False
+
     def is_effective_against(self, attacker, defender):
         effectiveness = {
             "fire": "water",
@@ -340,7 +372,7 @@ class Game:
 
     def draw(self):
         self.screen.fill((37, 19, 26))
-
+        # mapa
         for y, row in enumerate(self.layout):
             for x, tile in enumerate(row):
                 screen_x = x * self.TILE_SIZE - self.camera_x
@@ -355,7 +387,7 @@ class Game:
                     self.screen.blit(self.random_wall_tiles[tile][self.wall_layout[y][x]], (screen_x, screen_y))
                 elif tile in self.single_wall_tiles:
                     self.screen.blit(self.single_wall_tiles[tile], (screen_x, screen_y))
-
+        # dekoracie
         for y, row in enumerate(self.decoration_layout):
             for x, decoration in enumerate(row):
                 if decoration in self.decoration_tiles:
@@ -363,29 +395,41 @@ class Game:
                     screen_y = y * self.TILE_SIZE - self.camera_y
                     self.screen.blit(self.decoration_tiles[decoration], (screen_x, screen_y))
 
-        # Draw player
-        self.player.draw(self.screen, self.camera_x, self.camera_y)
+        if not self.game_over:
+            # Draw player
+            self.player.draw(self.screen, self.camera_x, self.camera_y)
 
-        # Draw enemies
-        for enemy in self.enemies:
-            enemy.draw(self.screen, self.camera_x, self.camera_y)
+            # Draw enemies
+            for enemy in self.enemies:
+                enemy.draw(self.screen, self.camera_x, self.camera_y)
 
-        # Draw projectiles
-        for projectile in self.projectiles:
-            projectile.draw(self.screen, self.camera_x, self.camera_y)
+            # Draw projectiles
+            for projectile in self.projectiles:
+                projectile.draw(self.screen, self.camera_x, self.camera_y)
+
+            # Timer
+            remaining_time = self.update_timer()
+            timer_text = self.font.render(f"Time: {remaining_time}", True, (255, 255, 255))
+            self.screen.blit(timer_text, (20, 100))
 
         # Draw health bar
-        if self.player.is_alive:
+        if self.player.is_alive and not self.game_over:
             current_health_bar = self.health_bars[self.player.current_health - 1]
-            self.screen.blit(current_health_bar, (self.health_bar_x, self.health_bar_y))
+            self.screen.blit(current_health_bar, (10, -90))
 
         # Game over
-        if not self.player.is_alive:
+        if self.game_over:
             font = pygame.font.Font(None, 74)
             game_over_text = font.render('Game Over', True, (255, 0, 0))
             text_rect = game_over_text.get_rect(center=(self.screen.get_width() // 2,
                                                         self.screen.get_height() // 2))
             self.screen.blit(game_over_text, text_rect)
+
+            instruction_font = pygame.font.Font(None, 36)
+            instruction_text = instruction_font.render('Press ESC to quit', True, (255, 255, 255))
+            instruction_rect = instruction_text.get_rect(center=(self.screen.get_width() // 2,
+                                                                 self.screen.get_height() // 2 + 50))
+            self.screen.blit(instruction_text, instruction_rect)
 
         pygame.display.flip()
 
