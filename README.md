@@ -20,7 +20,7 @@ Hra čerpá inšpiráciu z nasledujúcich titulov:
 Vampire Survivors prinieslo revolučný systém automatického útočenia a manažmentu veľkého množstva nepriateľov. Môj projekt preberá koncept prežitia proti masívnym vlnám nepriateľov a systém postupného vylepšovania schopností.
 
 <p align="center">
-  <img src="" alt="Vampire Survivors">
+  <img src="https://github.com/ErikTitan/Pygame-projekt/blob/main/assets/media/vampire-survivors.jpg" alt="Vampire Survivors">
   <br>
   <em>Obrázok 1 Ukážka hry Vampire Survivors</em>
 </p>
@@ -30,7 +30,7 @@ Vampire Survivors prinieslo revolučný systém automatického útočenia a mana
 The Binding of Isaac predstavuje inšpiráciu pre náš dungeonový dizajn a systém postupu hrou. Preberám koncept procedurálne generovaných miestností a rôznorodých nepriateľov s unikátnymi vzorcami správania.
 
 <p align="center">
-  <img src="" alt="The Binding of Isaac">
+  <img src="https://github.com/ErikTitan/Pygame-projekt/blob/main/assets/media/binding-of-isaac.jpg" alt="The Binding of Isaac">
   <br>
   <em>Obrázok 2 Ukážka hry The Binding of Isaac</em>
 </p>
@@ -40,7 +40,7 @@ The Binding of Isaac predstavuje inšpiráciu pre náš dungeonový dizajn a sys
 Z tejto hry čerpáme inšpiráciu pre pixel art štýl a roguelike mechaniky. Hra ma inšpirovala svojim jednoduchým, ale efektívnym vizuálnym štýlom a systémom elementárnych interakcií.
 
 <p align="center">
-  <img src="" alt="Shattered Pixel Dungeon">
+  <img src="https://github.com/ErikTitan/Pygame-projekt/blob/main/assets/media/pixel-dungeon.jpg" alt="Shattered Pixel Dungeon">
   <br>
   <em>Obrázok 3 Ukážka hry Shattered Pixel Dungeon</em>
 </p>
@@ -111,7 +111,7 @@ Hra využíva pixel art štýl s dôrazom na jasné vizuálne odlíšenie elemen
 - **Vzduch**: Biele projektily s efektom vírenia
 
 <p align="center">
-  <img src="" alt="Projektily">
+  <img src="https://github.com/ErikTitan/Pygame-projekt/blob/main/assets/projectiles/Water1.png" alt="Projektily">
   <br>
   <em>Obrázok 5 Ukážka vodného elementu</em>
 </p>
@@ -124,7 +124,7 @@ Hra používa 16x16 pixel art assety škálované na 64x64 pre lepšiu viditeľn
 - Dekoratívne prvky pre atmosféru dungeonu
 
 <p align="center">
-  <img src="" alt="Dungeon">
+  <img src="https://github.com/ErikTitan/Pygame-projekt/blob/main/assets/media/map-image.png" alt="Dungeon">
   <br>
   <em>Obrázok 6 Ukážka hernej mapy</em>
 </p>
@@ -137,7 +137,7 @@ Hra používa 16x16 pixel art assety škálované na 64x64 pre lepšiu viditeľn
 - Štartovacia a konečná obrazovka
 
 <p align="center">
-  <img src="" alt="HUD">
+  <img src="https://github.com/ErikTitan/Pygame-projekt/blob/main/assets/media/HUD-image.png" alt="HUD">
   <br>
   <em>Obrázok 7 Ukážka HUD</em>
 </p>
