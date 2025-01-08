@@ -3,6 +3,7 @@ from player import Player
 from enemy import Enemy
 from projectile import Projectile
 import random
+from game_settings import GameSettings
 
 class Game:
     def __init__(self):
@@ -12,231 +13,50 @@ class Game:
         self.screen = pygame.display.set_mode((screen_info.current_w, screen_info.current_h), pygame.FULLSCREEN)
         self.clock = pygame.time.Clock()
 
-        self.BASE_TILE_SIZE = 16
-        self.TILE_SIZE = 64   # velkost tile
+        self.settings = GameSettings()
 
-        self.floor_tiles = [
-            pygame.transform.scale(
-                pygame.image.load(f"assets/map/floor{i}.png"),
-                (self.TILE_SIZE, self.TILE_SIZE)
-            ) for i in range(1, 5)
-        ]
-        self.random_wall_tiles = {
-            'T': [pygame.transform.scale(pygame.image.load(f"assets/map/wall{i}.png"),
-                                         (self.TILE_SIZE, self.TILE_SIZE)) for i in range(1, 5)],
-            'H': [pygame.transform.scale(pygame.image.load(f"assets/map/wall_half{i}.png"),
-                                         (self.TILE_SIZE, self.TILE_SIZE)) for i in range(1, 3)]
-        }
-
-        self.single_wall_tiles = {
-            'L': pygame.transform.scale(pygame.image.load("assets/map/wall_left_angle.png"),
-                                        (self.TILE_SIZE, self.TILE_SIZE)),
-            'R': pygame.transform.scale(pygame.image.load("assets/map/wall_right_angle.png"),
-                                        (self.TILE_SIZE, self.TILE_SIZE)),
-            'C': pygame.transform.scale(pygame.image.load("assets/map/TL_single_corner.png"),
-                                        (self.TILE_SIZE, self.TILE_SIZE)),
-            'D': pygame.transform.scale(pygame.image.load("assets/map/TR_single_corner.png"),
-                                        (self.TILE_SIZE, self.TILE_SIZE)),
-            'E': pygame.transform.scale(pygame.image.load("assets/map/TR_corner.png"),
-                                        (self.TILE_SIZE, self.TILE_SIZE)),
-            'F': pygame.transform.scale(pygame.image.load("assets/map/TL_corner.png"),
-                                        (self.TILE_SIZE, self.TILE_SIZE))
-        }
-
-        self.decoration_tiles = {
-            'W': pygame.transform.scale(pygame.image.load("assets/decorations/cobweb.png"),
-                                        (self.TILE_SIZE, self.TILE_SIZE)),
-            'T': pygame.transform.scale(pygame.image.load("assets/decorations/torch1.png"),
-                                        (self.TILE_SIZE, self.TILE_SIZE)),
-            'B': pygame.transform.scale(pygame.image.load("assets/decorations/torch2.png"),
-                                        (self.TILE_SIZE, self.TILE_SIZE)),
-            'V': pygame.transform.scale(pygame.image.load("assets/decorations/bones1.png"),
-                                        (self.TILE_SIZE, self.TILE_SIZE)),
-            'J': pygame.transform.scale(pygame.image.load("assets/decorations/bones2.png"),
-                                        (self.TILE_SIZE, self.TILE_SIZE)),
-            'X': pygame.transform.scale(pygame.image.load("assets/decorations/flag.png"),
-                                        (self.TILE_SIZE, self.TILE_SIZE)),
-            'Y': pygame.transform.scale(pygame.image.load("assets/decorations/chain.png"),
-                                        (self.TILE_SIZE, self.TILE_SIZE)),
-        }
-
-        self.health_bars = [
-            pygame.image.load("assets/HUD/health_bar1.png"),  # 1 HP
-            pygame.image.load("assets/HUD/health_bar2.png"),  # 2 HP
-            pygame.image.load("assets/HUD/health_bar3.png")  # 3 HP
-        ]
-
-        health_bar_width = 410
-        health_bar_height = 355
-        self.health_bars = [pygame.transform.scale(img, (health_bar_width, health_bar_height))
-                            for img in self.health_bars]
-
-        # element indicators
-        self.element_indicators = {
-            "fire": pygame.transform.scale(pygame.image.load("assets/projectiles/Fire1.png"), (96, 36)),
-            "water": pygame.transform.scale(pygame.image.load("assets/projectiles/Water1.png"), (96, 36)),
-            "ground": pygame.transform.scale(pygame.image.load("assets/projectiles/Ground1.png"), (96, 36)),
-            "air": pygame.transform.scale(pygame.image.load("assets/projectiles/Air1.png"), (96, 36))
-        }
-
-        # player hit sound
-        self.hit_sound = pygame.mixer.Sound("assets/audio/Hit.wav")
-        self.hit_sound.set_volume(0.6)
-
-        self.shoot_sounds = {
-            "fire": pygame.mixer.Sound("assets/audio/Fire.wav"),
-            "water": pygame.mixer.Sound("assets/audio/Water.wav"),
-            "ground": pygame.mixer.Sound("assets/audio/Ground.wav"),
-            "air": pygame.mixer.Sound("assets/audio/Air.wav")
-        }
-
-        # background music
-        self.background_music = pygame.mixer.Sound("assets/audio/Background.wav")
-        self.background_music.set_volume(0.3)
-
-        # Timer
-        self.game_duration = 60
-        self.start_time = pygame.time.get_ticks()
-        self.font = pygame.font.Font(None, 48)
+        # attributes from settings
+        self.TILE_SIZE = self.settings.TILE_SIZE
+        self.floor_tiles = self.settings.floor_tiles
+        self.random_wall_tiles = self.settings.random_wall_tiles
+        self.single_wall_tiles = self.settings.single_wall_tiles
+        self.decoration_tiles = self.settings.decoration_tiles
+        self.health_bars = self.settings.health_bars
+        self.element_indicators = self.settings.element_indicators
+        self.hit_sound = self.settings.hit_sound
+        self.shoot_sounds = self.settings.shoot_sounds
+        self.background_music = self.settings.background_music
+        self.layout = self.settings.layout
+        self.decoration_layout = self.settings.decoration_layout
+        self.effectiveness = self.settings.get_element_effectiveness()
 
         # Game state
+        self.game_duration = self.settings.GAME_DURATION
+        self.start_time = pygame.time.get_ticks()
+        self.font = pygame.font.Font(None, 48)
         self.game_started = False
         self.game_over = False
 
-        # loop background music
         self.background_music.play(loops=-1)
-
         self.create_map()
         self.player = Player(3 * self.TILE_SIZE, 3 * self.TILE_SIZE)
         self.camera_x = 0
         self.camera_y = 0
 
+        # Enemy and projectile settings
         self.enemies = []
         self.projectiles = []
-        self.player_element = "fire" # default element
+        self.player_element = "fire"
         self.spawn_timer = 0
-        self.spawn_delay = 180
+        self.spawn_delay = self.settings.SPAWN_DELAY
         self.can_shoot = True
-        self.shoot_cooldown = 300
+        self.shoot_cooldown = self.settings.SHOOT_COOLDOWN
         self.last_shot_time = 0
 
         self.reset_game()
 
     def create_map(self):
-        self.walls = []
-
-        # T: Top wall (full wall)
-        # L: Left angled wall
-        # R: Right angled wall
-        # H: Half wall
-        # C: Top left single corner
-        # D: Top right single corner
-        # E: Top right corner
-        # F: Top left corner
-        # .: Floor
-        self.layout = [
-            "LTTTTTTTTTTTTTTTTTTTTTTTTTTTTTR      LTTTTTTTTTTTTTTTTTTTTTTTTTTR",
-            "L.............................R      L..........................R",
-            "L.............................R      L..........................R",
-            "L.............................R      L..........................R",
-            "L.............................R      L..........................R",
-            "L.............................TTTTTTTT..........................R",
-            "L...............................................................R",
-            "L...............................................................R",
-            "DHHHHHHHHHE.....................................................R",
-            "          L...............FHHHHHHHHHHHHHHE......................R",
-            "LTTTTTTTTTT...............R              L......................R",
-            "L.........................R              L......................R",
-            "L.........................R              L...........FHHHHHHHHHHC",
-            "L.........................TTTTTTTTTTTTTTTT...........R           ",
-            "L....................................................R           ",
-            "L....................................................TTTTTTTTTTTR",
-            "L...............................................................R",
-            "L...............................................................R",
-            "L...............................................................R",
-            "L...............................................................R",
-            "L...............................................................R",
-            "L...............................................................R",
-            "DHHHHHHHHHHHE..............FHHHHHHHHHHE.........................R",
-            "            L..............R          L.........................R",
-            "            L..............R          L.........................R",
-            "            L..............R          L.........................R",
-            "            L..............R          L.........................R",
-            "            L..............R          L.........................R",
-            "            L..............R          L.........................R",
-            "            L..............R          L.........................R",
-            "            DHHHHHHHHHHHHHHC          DHHHHHHHHHHHHHHHHHHHHHHHHHC"
-        ]
-
-        # W: cobweb
-        # T: torch1
-        # B: torch2
-        # V: bones1
-        # J: bones2
-        # X: flag
-        # Y: chain
-        self.decoration_layout = [
-            " WT  Y         T       Y   T          W Y     T          Y   T  ",
-            "                                                                 ",
-            "                             V                                   ",
-            "                                                                 ",
-            "                                                                 ",
-            "                                  X                              ",
-            "                                                         J       ",
-            "                  V                                              ",
-            "                                                                 ",
-            "                                                                 ",
-            " W                                                               ",
-            "                                                                 ",
-            "                   J                                             ",
-            " B                           Y   X   Y                           ",
-            "                                               J                 ",
-            "                                                                 ",
-            " B                                                               ",
-            "                                                                 ",
-            "                                                                 ",
-            " B                                                               ",
-            "                       V                                         ",
-            "                                                                 ",
-            "                                                                 ",
-            "                                       B                         ",
-            "                                                                 ",
-            "                                                                 ",
-            "              J                        B               V         ",
-            "                                                                 ",
-            "                                                                 ",
-            "                                       B                         ",
-            "                                                                 "
-        ]
-
-        self.floor_layout = []
-        self.wall_layout = []
-
-        for y, row in enumerate(self.layout):
-            floor_row = []
-            wall_row = []
-            for x, tile in enumerate(row):
-                # podlaha
-                if tile in '.LRHTCD':
-                    floor_row.append(random.randint(0, len(self.floor_tiles) - 1))
-                else:
-                    floor_row.append(-1)
-
-                # steny
-                if tile in self.random_wall_tiles:
-                    wall_row.append(random.randint(0, len(self.random_wall_tiles[tile]) - 1))
-                    self.walls.append(pygame.Rect(x * self.TILE_SIZE, y * self.TILE_SIZE,
-                                                  self.TILE_SIZE, self.TILE_SIZE))
-                # single steny
-                elif tile in self.single_wall_tiles:
-                    wall_row.append(0)
-                    self.walls.append(pygame.Rect(x * self.TILE_SIZE, y * self.TILE_SIZE,
-                                                  self.TILE_SIZE, self.TILE_SIZE))
-                else:
-                    wall_row.append(-1)
-
-            self.floor_layout.append(floor_row)
-            self.wall_layout.append(wall_row)
+        self.floor_layout, self.wall_layout, self.walls = self.settings.generate_floor_wall_layouts()
 
     def get_random_spawn_position(self):
         while True:
@@ -279,7 +99,7 @@ class Game:
                 return True
             return True
 
-        # end scrreen
+        # end screen
         if self.game_over:
             if keys[pygame.K_ESCAPE]:
                 return False
@@ -360,7 +180,7 @@ class Game:
                 # kontrola zasahu
                 for enemy in self.enemies[:]:
                     if projectile.rect.colliderect(enemy.rect):
-                        if self.is_effective_against(projectile.element_type, enemy.element_type):
+                        if self.effectiveness[projectile.element_type] == enemy.element_type:
                             self.enemies.remove(enemy)
                         self.projectiles.remove(projectile)
                         break
@@ -370,7 +190,7 @@ class Game:
         self.spawn_enemy()
 
     def update_timer(self):
-        elapsed_time = (pygame.time.get_ticks() - self.start_time) // 1000  # Convert to seconds
+        elapsed_time = (pygame.time.get_ticks() - self.start_time) // 1000
         remaining_time = max(0, self.game_duration - elapsed_time)
 
         if remaining_time == 0 and not self.game_over:
@@ -401,15 +221,6 @@ class Game:
 
         self.background_music.stop()
         self.background_music.play(loops=-1)
-
-    def is_effective_against(self, attacker, defender):
-        effectiveness = {
-            "fire": "water",
-            "water": "fire",
-            "ground": "air",
-            "air": "ground"
-        }
-        return effectiveness[attacker] == defender
 
     def draw(self):
         self.screen.fill((37, 19, 26))

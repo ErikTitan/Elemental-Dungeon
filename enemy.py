@@ -1,7 +1,6 @@
 import pygame
 import math
 
-
 class Enemy:
     def __init__(self, x, y, element_type):
         self.element_type = element_type

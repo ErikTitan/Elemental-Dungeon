@@ -1,7 +1,6 @@
 import pygame
 import math
 
-
 class Projectile:
     def __init__(self, x, y, target_x, target_y, element_type):
         # rect tvar
