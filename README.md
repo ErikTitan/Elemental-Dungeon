@@ -89,7 +89,7 @@ Správny výber elementu je kľúčový pre efektívne eliminovanie nepriateľov
 - Knockback efekt pri zásahu
 - Vizuálna indikácia poškodenia
 
-## **2.6 Herný zážitok**
+### **2.6 Herný zážitok**
 - **Začiatok hry:** Hra začína obrazovkou s inštrukciami a tlačidlom na spustenie.
 - **Intenzita:** Počet nepriateľov narastá s postupujúcim časom.
 - **Game Over:** Po strate všetkých životov hra končí, na obrazovke sa zobrazuje možnosť reštartovať alebo ukončiť hru.
