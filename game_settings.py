@@ -74,6 +74,15 @@ class GameSettings:
                                         (self.TILE_SIZE, self.TILE_SIZE))
         }
 
+        self.decoration_tiles.update({
+            'K': pygame.transform.scale(pygame.image.load("assets/decorations/key.png"),
+                                        (self.TILE_SIZE, self.TILE_SIZE)),
+            'Q': pygame.transform.scale(pygame.image.load("assets/map/ladder.png"),
+                                        (self.TILE_SIZE, self.TILE_SIZE)),
+            'Z': pygame.transform.scale(pygame.image.load("assets/decorations/ladder_cover.png"),
+                                        (self.TILE_SIZE, self.TILE_SIZE))
+        })
+
     def load_audio(self):
         # Sound effects
         self.hit_sound = pygame.mixer.Sound("assets/audio/Hit.wav")
@@ -119,6 +128,7 @@ class GameSettings:
         # E: Top right corner
         # F: Top left corner
         # .: Floor
+        # Q: ladder
         self.layout = [
             "LTTTTTTTTTTTTTTTTTTTTTTTTTTTTTR      LTTTTTTTTTTTTTTTTTTTTTTTTTTR",
             "L.............................R      L..........................R",
@@ -135,7 +145,7 @@ class GameSettings:
             "L.........................R              L...........FHHHHHHHHHHC",
             "L.........................TTTTTTTTTTTTTTTT...........R           ",
             "L....................................................R           ",
-            "L....................................................TTTTTTTTTTTR",
+            "L...............................Q....................TTTTTTTTTTTR",
             "L...............................................................R",
             "L...............................................................R",
             "L...............................................................R",
@@ -160,6 +170,7 @@ class GameSettings:
         # J: bones2
         # X: flag
         # Y: chain
+        # Z ladder cover
         self.decoration_layout = [
             " WT  Y         T       Y   T          W Y     T          Y   T  ",
             "                                                                 ",
@@ -176,7 +187,7 @@ class GameSettings:
             "                   J                                             ",
             " B                           Y   X   Y                           ",
             "                                               J                 ",
-            "                                                                 ",
+            "                                Z                                ",
             " B                                                               ",
             "                                                                 ",
             "                                                                 ",
@@ -234,3 +245,9 @@ class GameSettings:
             wall_layout.append(wall_row)
 
         return floor_layout, wall_layout, walls
+
+    def get_key_spawn_conditions(self):
+        return {
+            'min_distance': 20 * self.TILE_SIZE,
+            'max_distance': 70 * self.TILE_SIZE
+        }

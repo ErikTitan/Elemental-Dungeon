@@ -1,3 +1,6 @@
+import math
+import time
+
 import pygame
 from player import Player
 from enemy import Enemy
@@ -36,6 +39,13 @@ class Game:
         self.font = pygame.font.Font(None, 48)
         self.game_started = False
         self.game_over = False
+
+        # Level progression
+        self.has_key = False
+        self.key_position = None
+        self.ladder_position = None
+        self.ladder_cover_position = None
+        self.conditions = self.settings.get_key_spawn_conditions()
 
         self.background_music.play(loops=-1)
         self.create_map()
@@ -82,6 +92,21 @@ class Game:
             element = random.choice(["fire", "water", "ground", "air"])
             self.enemies.append(Enemy(*spawn_pos, element))
             self.spawn_timer = self.spawn_delay
+
+    def spawn_key(self):
+        valid_positions = []
+        for y, row in enumerate(self.layout):
+            for x, tile in enumerate(row):
+                if tile == '.':
+                    world_x, world_y = x * self.TILE_SIZE, y * self.TILE_SIZE
+                    distance = math.sqrt((world_x - self.player.rect.x) ** 2 + (world_y - self.player.rect.y) ** 2)
+                    if self.conditions['min_distance'] <= distance <= self.conditions['max_distance']:
+                        valid_positions.append((world_x, world_y))
+
+        if valid_positions:
+            self.key_position = random.choice(valid_positions)
+        else:
+            return
 
     def handle_input(self):
         keys = pygame.key.get_pressed()
@@ -185,6 +210,31 @@ class Game:
                         self.projectiles.remove(projectile)
                         break
 
+        # key collect
+        if self.key_position:
+            key_rect = pygame.Rect(self.key_position[0], self.key_position[1], self.TILE_SIZE, self.TILE_SIZE)
+            if self.player.rect.colliderect(key_rect):
+                self.has_key = True
+                self.key_position = None
+                print("Key collected!")
+
+        # odomknutie ladder_cover
+        if self.ladder_cover_position and self.has_key:
+            cover_rect = pygame.Rect(self.ladder_cover_position[0], self.ladder_cover_position[1], self.TILE_SIZE,
+                                     self.TILE_SIZE)
+            if self.player.rect.colliderect(cover_rect):
+                self.has_key = False
+                self.ladder_cover_removed_time = time.time()
+                self.ladder_cover_position = None
+                print("Ladder cover removed!")
+
+        # ladder vstup
+        if self.ladder_cover_removed_time and (time.time() - self.ladder_cover_removed_time >= 2):
+            ladder_rect = pygame.Rect(self.ladder_position[0], self.ladder_position[1], self.TILE_SIZE,
+                                      self.TILE_SIZE)
+            if self.player.rect.colliderect(ladder_rect):
+                self.progress_to_next_level()
+
         # spawn enemy
         self.spawn_timer -= 1
         self.spawn_enemy()
@@ -197,6 +247,9 @@ class Game:
             self.end_game()
 
         return remaining_time
+
+    def progress_to_next_level(self):
+        self.reset_game()
 
     def end_game(self):
         self.game_over = True
@@ -218,6 +271,27 @@ class Game:
         self.can_shoot = True
         self.shoot_cooldown = 300
         self.last_shot_time = 0
+
+        # Ensure key spawns correctly
+        self.has_key = False
+        self.key_position = None
+        self.ladder_cover_removed_time = None
+        self.spawn_key()
+        print(f"Key spawned at: {self.key_position}")  # Debugging
+
+        # Set up ladder cover
+        for y, row in enumerate(self.decoration_layout):
+            for x, decoration in enumerate(row):
+                if decoration == 'Z':
+                    self.ladder_cover_position = (x * self.TILE_SIZE, y * self.TILE_SIZE)
+                    print(f"Ladder cover placed at: {self.ladder_cover_position}")  # Debugging
+
+        # Find ladder position
+        for y, row in enumerate(self.layout):
+            for x, tile in enumerate(row):
+                if tile == 'Q':
+                    self.ladder_position = (x * self.TILE_SIZE, y * self.TILE_SIZE)
+                    print(f"Ladder placed at: {self.ladder_position}")  # Debugging
 
         self.background_music.stop()
         self.background_music.play(loops=-1)
@@ -273,6 +347,7 @@ class Game:
                     self.screen.blit(self.random_wall_tiles[tile][self.wall_layout[y][x]], (screen_x, screen_y))
                 elif tile in self.single_wall_tiles:
                     self.screen.blit(self.single_wall_tiles[tile], (screen_x, screen_y))
+
         # dekoracie
         for y, row in enumerate(self.decoration_layout):
             for x, decoration in enumerate(row):
@@ -280,6 +355,23 @@ class Game:
                     screen_x = x * self.TILE_SIZE - self.camera_x
                     screen_y = y * self.TILE_SIZE - self.camera_y
                     self.screen.blit(self.decoration_tiles[decoration], (screen_x, screen_y))
+
+        # kluc
+        if self.key_position:
+            screen_x = self.key_position[0] - self.camera_x
+            screen_y = self.key_position[1] - self.camera_y
+            self.screen.blit(self.decoration_tiles['K'], (screen_x, screen_y))
+
+        # ladder a ladder cover
+        if self.ladder_cover_position:
+            screen_x = self.ladder_cover_position[0] - self.camera_x
+            screen_y = self.ladder_cover_position[1] - self.camera_y
+            self.screen.blit(self.decoration_tiles['Z'], (screen_x, screen_y))
+
+        if self.ladder_position and not self.ladder_cover_position:
+            screen_x = self.ladder_position[0] - self.camera_x
+            screen_y = self.ladder_position[1] - self.camera_y
+            self.screen.blit(self.decoration_tiles['Q'], (screen_x, screen_y))
 
         if not self.game_over:
             # Draw player
