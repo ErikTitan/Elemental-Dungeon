@@ -71,7 +71,9 @@ class GameSettings:
             'X': pygame.transform.scale(pygame.image.load("assets/decorations/flag.png"),
                                         (self.TILE_SIZE, self.TILE_SIZE)),
             'Y': pygame.transform.scale(pygame.image.load("assets/decorations/chain.png"),
-                                        (self.TILE_SIZE, self.TILE_SIZE))
+                                        (self.TILE_SIZE, self.TILE_SIZE)),
+            'C': pygame.transform.scale(pygame.image.load("assets/decorations/coin.png"),
+                                        (self.TILE_SIZE, self.TILE_SIZE)),
         }
 
         self.decoration_tiles.update({

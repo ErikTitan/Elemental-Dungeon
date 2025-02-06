@@ -1,6 +1,5 @@
 import math
 import time
-
 import pygame
 from player import Player
 from enemy import Enemy
@@ -110,6 +109,7 @@ class Game:
 
     def handle_input(self):
         keys = pygame.key.get_pressed()
+
         if not self.game_over:
             dx = (keys[pygame.K_d] - keys[pygame.K_a]) * self.player.speed
             dy = (keys[pygame.K_s] - keys[pygame.K_w]) * self.player.speed
@@ -206,6 +206,7 @@ class Game:
                 for enemy in self.enemies[:]:
                     if projectile.rect.colliderect(enemy.rect):
                         if self.effectiveness[projectile.element_type] == enemy.element_type:
+                            self.coins.append((enemy.rect.x, enemy.rect.y))
                             self.enemies.remove(enemy)
                         self.projectiles.remove(projectile)
                         break
@@ -216,7 +217,13 @@ class Game:
             if self.player.rect.colliderect(key_rect):
                 self.has_key = True
                 self.key_position = None
-                print("Key collected!")
+
+        # coin collect
+        for coin in self.coins[:]:
+            coin_rect = pygame.Rect(coin[0], coin[1], self.TILE_SIZE, self.TILE_SIZE)
+            if self.player.rect.colliderect(coin_rect):
+                self.coin_count += 1
+                self.coins.remove(coin)
 
         # odomknutie ladder_cover
         if self.ladder_cover_position and self.has_key:
@@ -226,12 +233,10 @@ class Game:
                 self.has_key = False
                 self.ladder_cover_removed_time = time.time()
                 self.ladder_cover_position = None
-                print("Ladder cover removed!")
 
         # ladder vstup
         if self.ladder_cover_removed_time and (time.time() - self.ladder_cover_removed_time >= 2):
-            ladder_rect = pygame.Rect(self.ladder_position[0], self.ladder_position[1], self.TILE_SIZE,
-                                      self.TILE_SIZE)
+            ladder_rect = pygame.Rect(self.ladder_position[0], self.ladder_position[1], self.TILE_SIZE, self.TILE_SIZE)
             if self.player.rect.colliderect(ladder_rect):
                 self.progress_to_next_level()
 
@@ -272,26 +277,25 @@ class Game:
         self.shoot_cooldown = 300
         self.last_shot_time = 0
 
-        # Ensure key spawns correctly
+        # key and coin spawn
         self.has_key = False
         self.key_position = None
+        self.coins = []
+        self.coin_count = 0
         self.ladder_cover_removed_time = None
         self.spawn_key()
-        print(f"Key spawned at: {self.key_position}")  # Debugging
 
-        # Set up ladder cover
+        # ladder cover
         for y, row in enumerate(self.decoration_layout):
             for x, decoration in enumerate(row):
                 if decoration == 'Z':
                     self.ladder_cover_position = (x * self.TILE_SIZE, y * self.TILE_SIZE)
-                    print(f"Ladder cover placed at: {self.ladder_cover_position}")  # Debugging
 
-        # Find ladder position
+        # ladder pozicia
         for y, row in enumerate(self.layout):
             for x, tile in enumerate(row):
                 if tile == 'Q':
                     self.ladder_position = (x * self.TILE_SIZE, y * self.TILE_SIZE)
-                    print(f"Ladder placed at: {self.ladder_position}")  # Debugging
 
         self.background_music.stop()
         self.background_music.play(loops=-1)
@@ -362,12 +366,19 @@ class Game:
             screen_y = self.key_position[1] - self.camera_y
             self.screen.blit(self.decoration_tiles['K'], (screen_x, screen_y))
 
-        # ladder a ladder cover
+        # coin
+        for coin in self.coins:
+            screen_x = coin[0] - self.camera_x
+            screen_y = coin[1] - self.camera_y
+            self.screen.blit(self.decoration_tiles['C'], (screen_x, screen_y))
+
+        # ladder
         if self.ladder_cover_position:
             screen_x = self.ladder_cover_position[0] - self.camera_x
             screen_y = self.ladder_cover_position[1] - self.camera_y
             self.screen.blit(self.decoration_tiles['Z'], (screen_x, screen_y))
 
+        # ladder cover
         if self.ladder_position and not self.ladder_cover_position:
             screen_x = self.ladder_position[0] - self.camera_x
             screen_y = self.ladder_position[1] - self.camera_y
@@ -396,10 +407,18 @@ class Game:
             self.screen.blit(element_text, (20, 150))
             self.screen.blit(current_element, (300, 150))
 
-        # Draw health bar
-        if self.player.is_alive and not self.game_over:
-            current_health_bar = self.health_bars[self.player.current_health - 1]
-            self.screen.blit(current_health_bar, (10, -90))
+            # Draw health bar
+            if self.player.is_alive and not self.game_over:
+                current_health_bar = self.health_bars[self.player.current_health - 1]
+                self.screen.blit(current_health_bar, (10, -90))
+
+            # Draw coin counter
+            coin_text = self.font.render(f"Coins: {self.coin_count}", True, (255, 255, 0))
+            self.screen.blit(coin_text, (20, 200))
+
+            # Key indicator
+            if self.has_key:
+                self.screen.blit(self.decoration_tiles['K'], (10, 220))
 
         # Game over
         if self.game_over:
@@ -429,6 +448,13 @@ class Game:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     running = False
+                elif event.type == pygame.MOUSEWHEEL:
+                    elements = ["fire", "water", "ground", "air"]
+                    current_index = elements.index(self.player_element)
+                    if event.y > 0:  # Scroll up
+                        self.player_element = elements[(current_index + 1) % len(elements)]
+                    elif event.y < 0:  # Scroll down
+                        self.player_element = elements[(current_index - 1) % len(elements)]
 
             running = self.handle_input()
             self.update()
