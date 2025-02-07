@@ -38,6 +38,7 @@ class Game:
         self.font = pygame.font.Font(None, 48)
         self.game_started = False
         self.game_over = False
+        self.game_won = False
 
         # Level progression
         self.has_key = False
@@ -65,6 +66,9 @@ class Game:
         self.reset_game()
 
     def create_map(self):
+        self.layout = self.settings.layout
+        self.decoration_layout = self.settings.decoration_layout
+
         self.floor_layout, self.wall_layout, self.walls = self.settings.generate_floor_wall_layouts()
 
     def get_random_spawn_position(self):
@@ -254,7 +258,15 @@ class Game:
         return remaining_time
 
     def progress_to_next_level(self):
-        self.reset_game()
+        if self.settings.progress_level():
+            self.reset_game()
+        else:
+            self.win_game()
+
+    def win_game(self):
+        self.game_over = True
+        self.game_won = True
+        self.background_music.stop()
 
     def end_game(self):
         self.game_over = True
@@ -262,9 +274,9 @@ class Game:
         self.player.is_alive = False
 
     def reset_game(self):
+        self.create_map()
         self.game_over = False
         self.start_time = pygame.time.get_ticks()
-        self.create_map()
         self.player = Player(3 * self.TILE_SIZE, 3 * self.TILE_SIZE)
         self.camera_x = 0
         self.camera_y = 0
@@ -421,7 +433,7 @@ class Game:
                 self.screen.blit(self.decoration_tiles['K'], (10, 220))
 
         # Game over
-        if self.game_over:
+        if self.game_over and not self.game_won:
             font = pygame.font.Font(None, 74)
             game_over_text = font.render('Game Over', True, (255, 0, 0))
             text_rect = game_over_text.get_rect(center=(self.screen.get_width() // 2,
@@ -439,6 +451,13 @@ class Game:
 
             self.screen.blit(quit_text, quit_rect)
             self.screen.blit(restart_text, restart_rect)
+
+        if self.game_over and self.game_won:
+            font = pygame.font.Font(None, 74)
+            win_text = font.render('Congratulations!', True, (0, 255, 0))
+            text_rect = win_text.get_rect(center=(self.screen.get_width() // 2,
+                                                  self.screen.get_height() // 2))
+            self.screen.blit(win_text, text_rect)
 
         pygame.display.flip()
 

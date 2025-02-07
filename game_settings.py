@@ -1,6 +1,9 @@
 import pygame
 import random
 
+from levels import LevelData
+
+
 class GameSettings:
     def __init__(self):
         # Base settings
@@ -14,14 +17,16 @@ class GameSettings:
         self.SHOOT_COOLDOWN = 300
 
         # Audio settings
-        self.BACKGROUND_MUSIC_VOLUME = 0.3
+        self.BACKGROUND_MUSIC_VOLUME = 0
         self.HIT_SOUND_VOLUME = 0.6
 
         # Initialize assets
         self.load_tiles()
         self.load_audio()
         self.load_hud()
+        self.level_data = LevelData()
         self.create_layouts()
+
 
     def load_tiles(self):
         # Floor tiles
@@ -121,91 +126,15 @@ class GameSettings:
         }
 
     def create_layouts(self):
-        # T: Top wall (full wall)
-        # L: Left angled wall
-        # R: Right angled wall
-        # H: Half wall
-        # C: Top left single corner
-        # D: Top right single corner
-        # E: Top right corner
-        # F: Top left corner
-        # .: Floor
-        # Q: ladder
-        self.layout = [
-            "LTTTTTTTTTTTTTTTTTTTTTTTTTTTTTR      LTTTTTTTTTTTTTTTTTTTTTTTTTTR",
-            "L.............................R      L..........................R",
-            "L.............................R      L..........................R",
-            "L.............................R      L..........................R",
-            "L.............................R      L..........................R",
-            "L.............................TTTTTTTT..........................R",
-            "L...............................................................R",
-            "L...............................................................R",
-            "DHHHHHHHHHE.....................................................R",
-            "          L...............FHHHHHHHHHHHHHHE......................R",
-            "LTTTTTTTTTT...............R              L......................R",
-            "L.........................R              L......................R",
-            "L.........................R              L...........FHHHHHHHHHHC",
-            "L.........................TTTTTTTTTTTTTTTT...........R           ",
-            "L....................................................R           ",
-            "L...............................Q....................TTTTTTTTTTTR",
-            "L...............................................................R",
-            "L...............................................................R",
-            "L...............................................................R",
-            "L...............................................................R",
-            "L...............................................................R",
-            "L...............................................................R",
-            "DHHHHHHHHHHHE..............FHHHHHHHHHHE.........................R",
-            "            L..............R          L.........................R",
-            "            L..............R          L.........................R",
-            "            L..............R          L.........................R",
-            "            L..............R          L.........................R",
-            "            L..............R          L.........................R",
-            "            L..............R          L.........................R",
-            "            L..............R          L.........................R",
-            "            DHHHHHHHHHHHHHHC          DHHHHHHHHHHHHHHHHHHHHHHHHHC"
-        ]
+        current_level = self.level_data.get_current_level()
+        self.layout = current_level['layout']
+        self.decoration_layout = current_level['decoration_layout']
 
-        # W: cobweb
-        # T: torch1
-        # B: torch2
-        # V: bones1
-        # J: bones2
-        # X: flag
-        # Y: chain
-        # Z ladder cover
-        self.decoration_layout = [
-            " WT  Y         T       Y   T          W Y     T          Y   T  ",
-            "                                                                 ",
-            "                             V                                   ",
-            "                                                                 ",
-            "                                                                 ",
-            "                                  X                              ",
-            "                                                         J       ",
-            "                  V                                              ",
-            "                                                                 ",
-            "                                                                 ",
-            " W                                                               ",
-            "                                                                 ",
-            "                   J                                             ",
-            " B                           Y   X   Y                           ",
-            "                                               J                 ",
-            "                                Z                                ",
-            " B                                                               ",
-            "                                                                 ",
-            "                                                                 ",
-            " B                                                               ",
-            "                       V                                         ",
-            "                                                                 ",
-            "                                                                 ",
-            "                                       B                         ",
-            "                                                                 ",
-            "                                                                 ",
-            "              J                        B               V         ",
-            "                                                                 ",
-            "                                                                 ",
-            "                                       B                         ",
-            "                                                                 "
-        ]
+    def progress_level(self):
+        if self.level_data.next_level():
+            self.create_layouts()
+            return True
+        return False
 
     def get_element_effectiveness(self):
         return {
