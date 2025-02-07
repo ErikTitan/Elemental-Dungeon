@@ -17,7 +17,7 @@ class GameSettings:
         self.SHOOT_COOLDOWN = 300
 
         # Audio settings
-        self.BACKGROUND_MUSIC_VOLUME = 0
+        self.BACKGROUND_MUSIC_VOLUME = 0.3
         self.HIT_SOUND_VOLUME = 0.6
 
         # Initialize assets
@@ -91,7 +91,6 @@ class GameSettings:
         })
 
     def load_audio(self):
-        # Sound effects
         self.hit_sound = pygame.mixer.Sound("assets/audio/Hit.wav")
         self.hit_sound.set_volume(self.HIT_SOUND_VOLUME)
 
@@ -102,7 +101,9 @@ class GameSettings:
             "air": pygame.mixer.Sound("assets/audio/Air.wav")
         }
 
-        # Background music
+        self.coin_sound = pygame.mixer.Sound("assets/audio/Coin.wav")
+        self.cover_sound = pygame.mixer.Sound("assets/audio/Cover.wav")
+
         self.background_music = pygame.mixer.Sound("assets/audio/Background.wav")
         self.background_music.set_volume(self.BACKGROUND_MUSIC_VOLUME)
 

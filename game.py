@@ -27,6 +27,8 @@ class Game:
         self.element_indicators = self.settings.element_indicators
         self.hit_sound = self.settings.hit_sound
         self.shoot_sounds = self.settings.shoot_sounds
+        self.coin_sound = self.settings.coin_sound
+        self.cover_sound = self.settings.cover_sound
         self.background_music = self.settings.background_music
         self.layout = self.settings.layout
         self.decoration_layout = self.settings.decoration_layout
@@ -39,6 +41,7 @@ class Game:
         self.game_started = False
         self.game_over = False
         self.game_won = False
+        self.total_coins = 0
 
         # Level progression
         self.has_key = False
@@ -220,6 +223,7 @@ class Game:
             key_rect = pygame.Rect(self.key_position[0], self.key_position[1], self.TILE_SIZE, self.TILE_SIZE)
             if self.player.rect.colliderect(key_rect):
                 self.has_key = True
+                self.coin_sound.play()
                 self.key_position = None
 
         # coin collect
@@ -227,6 +231,7 @@ class Game:
             coin_rect = pygame.Rect(coin[0], coin[1], self.TILE_SIZE, self.TILE_SIZE)
             if self.player.rect.colliderect(coin_rect):
                 self.coin_count += 1
+                self.coin_sound.play()
                 self.coins.remove(coin)
 
         # odomknutie ladder_cover
@@ -235,6 +240,7 @@ class Game:
                                      self.TILE_SIZE)
             if self.player.rect.colliderect(cover_rect):
                 self.has_key = False
+                self.cover_sound.play()
                 self.ladder_cover_removed_time = time.time()
                 self.ladder_cover_position = None
 
@@ -258,6 +264,7 @@ class Game:
         return remaining_time
 
     def progress_to_next_level(self):
+        self.total_coins = self.coin_count
         if self.settings.progress_level():
             self.reset_game()
         else:
@@ -293,7 +300,7 @@ class Game:
         self.has_key = False
         self.key_position = None
         self.coins = []
-        self.coin_count = 0
+        self.coin_count = self.total_coins
         self.ladder_cover_removed_time = None
         self.spawn_key()
 

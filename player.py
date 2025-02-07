@@ -18,7 +18,6 @@ class Player:
             self.frames.append(frame)
 
             hurt_frame = frame.copy()
-            # Tint the frame red (multiply by red color)
             hurt_frame.fill((255, 0, 0, 128), special_flags=pygame.BLEND_RGBA_MULT)
             self.hurt_frames.append(hurt_frame)
 
@@ -124,7 +123,6 @@ class Player:
                 self.hurt_effect = False
 
     def draw(self, screen, camera_x, camera_y):
-        # Choose between normal and hurt frames
         current_frames = self.hurt_frames if self.invulnerable else self.frames
         screen.blit(current_frames[self.current_frame],
                    (self.rect.x - camera_x,

@@ -1,6 +1,6 @@
 class LevelData:
     def __init__(self):
-        self.current_level = 3
+        self.current_level = 0
         self.levels = [
             {
             # T: Top wall (full wall)
@@ -203,7 +203,7 @@ class LevelData:
             "                                                                    ",
             "                                         V                          ",
             "                                                                    ",
-            "                               X                                    ",
+            "                                                                    ",
             "                                                                   ",
             "                                                                    ",
             "                                                                   ",
