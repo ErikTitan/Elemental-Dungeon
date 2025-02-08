@@ -6,6 +6,8 @@ from enemy import Enemy
 from projectile import Projectile
 import random
 from game_settings import GameSettings
+from shop import Shop
+
 
 class Game:
     def __init__(self):
@@ -41,7 +43,7 @@ class Game:
         self.game_started = False
         self.game_over = False
         self.game_won = False
-        self.total_coins = 0
+        self.total_coins = 10
 
         # Level progression
         self.has_key = False
@@ -49,6 +51,12 @@ class Game:
         self.ladder_position = None
         self.ladder_cover_position = None
         self.conditions = self.settings.get_key_spawn_conditions()
+        self.shop = Shop(self.screen.get_width(), self.screen.get_height())
+        self.in_shop = False
+        self.movement_speed_level = 0
+        self.fire_rate_level = 0
+        self.max_health_level = 0
+
 
         self.background_music.play(loops=-1)
         self.create_map()
@@ -63,7 +71,7 @@ class Game:
         self.spawn_timer = 0
         self.spawn_delay = self.settings.SPAWN_DELAY
         self.can_shoot = True
-        self.shoot_cooldown = self.settings.SHOOT_COOLDOWN
+        self.base_shoot_cooldown = self.settings.SHOOT_COOLDOWN
         self.last_shot_time = 0
 
         self.reset_game()
@@ -117,7 +125,7 @@ class Game:
     def handle_input(self):
         keys = pygame.key.get_pressed()
 
-        if not self.game_over:
+        if not self.game_over and not self.in_shop:
             dx = (keys[pygame.K_d] - keys[pygame.K_a]) * self.player.speed
             dy = (keys[pygame.K_s] - keys[pygame.K_w]) * self.player.speed
             self.camera_x = self.player.rect.x - self.screen.get_width() // 2
@@ -128,7 +136,6 @@ class Game:
         if not self.game_started:
             if any(keys):
                 self.game_started = True
-                return True
             return True
 
         # end screen
@@ -137,7 +144,25 @@ class Game:
                 return False
             if keys[pygame.K_r]:
                 self.reset_game()
-                return True
+            return True
+
+        # shop
+        if self.in_shop:
+            events = pygame.event.get()
+            for event in events:
+                if event.type == pygame.QUIT:
+                    return False
+                should_continue, self.coin_count = self.shop.handle_input(
+                    event,
+                    self,
+                    self.coin_count
+                )
+                if should_continue:
+                    self.in_shop = False
+                    if self.settings.progress_level():
+                        self.reset_game()
+                    else:
+                        self.win_game()
             return True
 
         # prepinanie elementov
@@ -152,7 +177,7 @@ class Game:
 
         # strielanie
         current_time = pygame.time.get_ticks()
-        if pygame.mouse.get_pressed()[0] and self.can_shoot:
+        if pygame.mouse.get_pressed()[0] and self.can_shoot and not self.in_shop:
             mouse_x, mouse_y = pygame.mouse.get_pos()
             target_x = mouse_x + self.camera_x
             target_y = mouse_y + self.camera_y
@@ -163,20 +188,20 @@ class Game:
                 target_y,
                 self.player_element
             ))
-
             self.shoot_sounds[self.player_element].play()
-
             self.last_shot_time = current_time
             self.can_shoot = False
 
         # cooldown pre strelbu
-        if not self.can_shoot:
-            if current_time - self.last_shot_time >= self.shoot_cooldown:
-                self.can_shoot = True
+        if not self.can_shoot and (current_time - self.last_shot_time >= self.base_shoot_cooldown):
+            self.can_shoot = True
 
         return True
 
     def update(self):
+        if self.in_shop:
+            return
+
         if not self.game_started or self.game_over:
             return
 
@@ -259,16 +284,13 @@ class Game:
         remaining_time = max(0, self.game_duration - elapsed_time)
 
         if remaining_time == 0 and not self.game_over:
-            self.end_game()
+            self.progress_to_next_level()
 
         return remaining_time
 
     def progress_to_next_level(self):
         self.total_coins = self.coin_count
-        if self.settings.progress_level():
-            self.reset_game()
-        else:
-            self.win_game()
+        self.in_shop = True
 
     def win_game(self):
         self.game_over = True
@@ -293,8 +315,14 @@ class Game:
         self.spawn_timer = 0
         self.spawn_delay = 180
         self.can_shoot = True
-        self.shoot_cooldown = 300
+        self.base_shoot_cooldown = 300
         self.last_shot_time = 0
+
+        # Reapply upgrades
+        self.player.speed = self.player.base_speed * (1 + self.movement_speed_level * 0.1)
+        self.base_shoot_cooldown = int(300 * (1 - self.fire_rate_level * 0.2))
+        self.player.max_health = 3 + self.max_health_level
+        self.player.current_health = self.player.max_health
 
         # key and coin spawn
         self.has_key = False
@@ -352,6 +380,17 @@ class Game:
             self.screen.blit(element_text, element_rect)
             self.screen.blit(shoot_text, shoot_rect)
 
+            pygame.display.flip()
+            return
+
+        # shop
+        if self.in_shop:
+            self.shop.draw(
+                self.screen,
+                self.coin_count,
+                self.player.current_health,
+                self.player.max_health
+            )
             pygame.display.flip()
             return
 
@@ -459,6 +498,7 @@ class Game:
             self.screen.blit(quit_text, quit_rect)
             self.screen.blit(restart_text, restart_rect)
 
+        # Win screen
         if self.game_over and self.game_won:
             font = pygame.font.Font(None, 74)
             win_text = font.render('Congratulations!', True, (0, 255, 0))
@@ -471,16 +511,26 @@ class Game:
     def run(self):
         running = True
         while running:
+            # Process all events in the main loop
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     running = False
                 elif event.type == pygame.MOUSEWHEEL:
+                    # Handle element switching via mouse wheel
                     elements = ["fire", "water", "ground", "air"]
                     current_index = elements.index(self.player_element)
                     if event.y > 0:  # Scroll up
                         self.player_element = elements[(current_index + 1) % len(elements)]
                     elif event.y < 0:  # Scroll down
                         self.player_element = elements[(current_index - 1) % len(elements)]
+                if self.in_shop:
+                    should_continue, self.coin_count = self.shop.handle_input(event, self, self.coin_count)
+                    if should_continue:
+                        self.in_shop = False
+                        if self.settings.progress_level():
+                            self.reset_game()
+                        else:
+                            self.win_game()
 
             running = self.handle_input()
             self.update()

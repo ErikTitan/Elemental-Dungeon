@@ -17,7 +17,7 @@ class GameSettings:
         self.SHOOT_COOLDOWN = 300
 
         # Audio settings
-        self.BACKGROUND_MUSIC_VOLUME = 0.3
+        self.BACKGROUND_MUSIC_VOLUME = 0
         self.HIT_SOUND_VOLUME = 0.6
 
         # Initialize assets

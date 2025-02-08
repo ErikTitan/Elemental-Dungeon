@@ -30,7 +30,8 @@ class Player:
         self.rect = self.frames[0].get_rect()
         self.rect.x = x
         self.rect.y = y
-        self.speed = 8
+        self.base_speed = 8
+        self.speed = self.base_speed
 
         # health
         self.max_health = 3
