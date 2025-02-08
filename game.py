@@ -55,8 +55,6 @@ class Game:
         self.in_shop = False
         self.movement_speed_level = 0
         self.fire_rate_level = 0
-        self.max_health_level = 0
-
 
         self.background_music.play(loops=-1)
         self.create_map()
@@ -238,6 +236,9 @@ class Game:
                 for enemy in self.enemies[:]:
                     if projectile.rect.colliderect(enemy.rect):
                         if self.effectiveness[projectile.element_type] == enemy.element_type:
+                            # life steal check
+                            if random.random() < self.life_steal_chance and self.player.current_health < 3:
+                                self.player.current_health = min(3, self.player.current_health + 1)
                             self.coins.append((enemy.rect.x, enemy.rect.y))
                             self.enemies.remove(enemy)
                         self.projectiles.remove(projectile)
@@ -318,11 +319,12 @@ class Game:
         self.base_shoot_cooldown = 300
         self.last_shot_time = 0
 
-        # Reapply upgrades
+        # upgrades
         self.player.speed = self.player.base_speed * (1 + self.movement_speed_level * 0.1)
         self.base_shoot_cooldown = int(300 * (1 - self.fire_rate_level * 0.2))
-        self.player.max_health = 3 + self.max_health_level
         self.player.current_health = self.player.max_health
+        self.life_steal_level = 0
+        self.life_steal_chance = 0.2
 
         # key and coin spawn
         self.has_key = False

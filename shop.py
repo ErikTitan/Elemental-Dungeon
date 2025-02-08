@@ -28,7 +28,7 @@ class ShopItem:
     def get_effect_description(self) -> str:
         effects = {
             "Fire Rate": f"-{self.level * 20}% Cooldown",
-            "Max Health": f"+{self.level} HP",
+            "Life Steal": f"{20 * (1 + self.level)}% Chance",
             "Movement Speed": f"+{self.level * 10}% Speed",
             "Healing": "Restore Full HP"
         }
@@ -47,8 +47,8 @@ class Shop:
         self.desc_font = pygame.font.Font(None, 24)
 
         self.items = [
+            ShopItem("Life Steal", "20% chance to heal on kill", 2, 3, "assets/decorations/heart.png"),
             ShopItem("Fire Rate", "Decrease time between shots", 2, 3, "assets/projectiles/Fire1.png"),
-            ShopItem("Max Health", "Increase maximum health", 2, 3, "assets/HUD/health_bar1.png"),
             ShopItem("Movement Speed", "Increase movement speed", 2, 3, "assets/characters/Player.png"),
             ShopItem("Healing", "Restore health to maximum", 2, 4, "assets/decorations/coin.png")
         ]
@@ -182,10 +182,9 @@ class Shop:
         if item.name == "Fire Rate":
             game.fire_rate_level = item.level
             game.base_shoot_cooldown = int(300 * (1 - game.fire_rate_level * 0.2))
-        elif item.name == "Max Health":
-            game.max_health_level = item.level
-            game.player.max_health = 3 + game.max_health_level
-            game.player.current_health = game.player.max_health
+        elif item.name == "Life Steal":
+            game.life_steal_level = item.level
+            game.life_steal_chance = 0.2 * (1 + game.life_steal_level)
         elif item.name == "Movement Speed":
             game.movement_speed_level = item.level
             game.player.speed = game.player.base_speed * (1 + game.movement_speed_level * 0.1)
