@@ -14,18 +14,18 @@ class ShopItem:
             (48, 48)
         )
 
-    def get_current_cost(self) -> int:
+    def get_current_cost(self):
         if self.name == "Healing":
             return self.base_cost
         else:
             return self.base_cost * (self.level + 1)
 
-    def can_upgrade(self, coins: int) -> bool:
+    def can_upgrade(self, coins: int):
         if self.name == "Healing":
             return coins >= self.base_cost
         return self.level < self.max_level and coins >= self.get_current_cost()
 
-    def get_effect_description(self) -> str:
+    def get_effect_description(self):
         effects = {
             "Fire Rate": f"-{self.level * 20}% Cooldown",
             "Life Steal": f"{15 *  self.level}% Chance",
@@ -38,7 +38,7 @@ class Shop:
     def __init__(self, screen_width: int, screen_height: int):
         self.screen_width = screen_width
         self.screen_height = screen_height
-        self.background_color = (37, 19, 26)  # #25131A
+        self.background_color = (37, 19, 26)
         self.gold_color = (255, 215, 0)
         self.silver_color = (192, 192, 192)
 
@@ -53,7 +53,6 @@ class Shop:
             ShopItem("Healing", "Restore health to maximum", 5, 4, "assets/decorations/coin.png")
         ]
 
-        # Selected item
         self.selected_index = 0
 
         self.continue_button = pygame.Rect(
@@ -130,7 +129,7 @@ class Shop:
         text_rect = continue_text.get_rect(center=self.continue_button.center)
         screen.blit(continue_text, text_rect)
 
-    def handle_input(self, event: pygame.event.Event, game, coins: int) -> tuple[bool, int]:
+    def handle_input(self, event: pygame.event.Event, game, coins: int):
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_UP:
                 self.selected_index = (self.selected_index - 1) % len(self.items)

@@ -5,15 +5,10 @@ class Player:
     def __init__(self, x, y):
         self.frames = []
         self.hurt_frames = []
-        # nacitat spritesheet
         self.spritesheet = pygame.image.load("assets/characters/Player.png").convert_alpha()
 
-        # spritesheet ma 4 frames kazdy je 16x16
-
         for i in range(4):
-            # vybrat frame zo spritesheetu
             frame = self.spritesheet.subsurface((i * 16, 0, 16, 16))
-            # zvacsit frame na 64x64
             frame = pygame.transform.scale(frame, (64, 64))
             self.frames.append(frame)
 

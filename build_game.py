@@ -4,7 +4,6 @@ import sys
 import shutil
 from datetime import datetime
 
-
 def create_build_dirs():
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     build_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "build", f"build_{timestamp}")
@@ -14,7 +13,6 @@ def create_build_dirs():
     os.makedirs(exe_dir, exist_ok=True)
     os.makedirs(work_dir, exist_ok=True)
     return build_dir, exe_dir, work_dir
-
 
 def copy_assets(exe_dir):
     asset_directories = [
@@ -37,7 +35,6 @@ def copy_assets(exe_dir):
         else:
             print(f"Warning: {asset_dir} directory not found!")
 
-
 def clean_pyinstaller_artifacts():
     paths_to_clean = ['__pycache__', '*.spec']
     for pattern in paths_to_clean:
@@ -50,7 +47,6 @@ def clean_pyinstaller_artifacts():
                     os.remove(f)
             except Exception as e:
                 print(f"Warning: Could not remove {f}: {e}")
-
 
 def build_executable():
     build_dir, exe_dir, work_dir = create_build_dirs()
@@ -97,7 +93,6 @@ def build_executable():
     except Exception as e:
         print(f"Error during build: {e}")
         raise
-
 
 if __name__ == "__main__":
     try:
