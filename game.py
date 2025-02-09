@@ -7,7 +7,7 @@ from projectile import Projectile
 import random
 from game_settings import GameSettings
 from shop import Shop
-
+from boss import Boss, BossProjectile
 
 class Game:
     def __init__(self):
@@ -43,7 +43,7 @@ class Game:
         self.game_started = False
         self.game_over = False
         self.game_won = False
-        self.total_coins = 10
+        self.total_coins = 0
 
         # Level progression
         self.has_key = False
@@ -71,6 +71,8 @@ class Game:
         self.can_shoot = True
         self.base_shoot_cooldown = self.settings.SHOOT_COOLDOWN
         self.last_shot_time = 0
+        self.boss = None
+        self.boss_projectiles = []
 
         self.reset_game()
 
@@ -226,6 +228,28 @@ class Game:
                 self.enemies
             )
 
+        # boss
+        if self.boss and self.boss.health > 0:
+            self.boss.update((self.player.rect.x, self.player.rect.y), self.projectiles)
+            boss_projectile = self.boss.shoot_projectile((self.player.rect.x, self.player.rect.y))
+            if boss_projectile:
+                self.boss_projectiles.append(boss_projectile)
+        else:
+            if self.boss and self.boss.health <= 0 and not self.game_over:
+                self.win_game()
+
+        # boss strely
+        for bp in self.boss_projectiles[:]:
+            bp.update()
+            if bp.rect.colliderect(self.player.rect):
+                self.player.take_damage(bp.rect.center)
+                self.hit_sound.play()
+                if not self.player.is_alive:
+                    self.end_game()
+                self.boss_projectiles.remove(bp)
+            if bp.hits_wall(self.walls):
+                self.boss_projectiles.remove(bp)
+
         # posunut strely
         for projectile in self.projectiles[:]:
             projectile.update()
@@ -239,7 +263,8 @@ class Game:
                             # life steal check
                             if random.random() < self.life_steal_chance and self.player.current_health < 3:
                                 self.player.current_health = min(3, self.player.current_health + 1)
-                            self.coins.append((enemy.rect.x, enemy.rect.y))
+                            if self.settings.level_data.current_level != 3:
+                                self.coins.append((enemy.rect.x, enemy.rect.y))
                             self.enemies.remove(enemy)
                         self.projectiles.remove(projectile)
                         break
@@ -281,12 +306,12 @@ class Game:
         self.spawn_enemy()
 
     def update_timer(self):
+        if self.settings.level_data.current_level == 3:
+            return "Last Level"
         elapsed_time = (pygame.time.get_ticks() - self.start_time) // 1000
         remaining_time = max(0, self.game_duration - elapsed_time)
-
         if remaining_time == 0 and not self.game_over:
             self.progress_to_next_level()
-
         return remaining_time
 
     def progress_to_next_level(self):
@@ -318,13 +343,15 @@ class Game:
         self.can_shoot = True
         self.base_shoot_cooldown = 300
         self.last_shot_time = 0
+        self.boss = None
+        self.boss_projectiles = []
 
         # upgrades
         self.player.speed = self.player.base_speed * (1 + self.movement_speed_level * 0.1)
         self.base_shoot_cooldown = int(300 * (1 - self.fire_rate_level * 0.2))
         self.player.current_health = self.player.max_health
         self.life_steal_level = 0
-        self.life_steal_chance = 0.2
+        self.life_steal_chance = 0
 
         # key and coin spawn
         self.has_key = False
@@ -332,7 +359,8 @@ class Game:
         self.coins = []
         self.coin_count = self.total_coins
         self.ladder_cover_removed_time = None
-        self.spawn_key()
+        if self.settings.level_data.current_level != 3:
+            self.spawn_key()
 
         # ladder cover
         for y, row in enumerate(self.decoration_layout):
@@ -345,6 +373,12 @@ class Game:
             for x, tile in enumerate(row):
                 if tile == 'Q':
                     self.ladder_position = (x * self.TILE_SIZE, y * self.TILE_SIZE)
+
+        # boss spawn
+        if self.settings.level_data.current_level == 3:
+            self.boss = Boss(1000, 1000 )
+        else:
+            self.boss = None
 
         self.background_music.stop()
         self.background_music.play(loops=-1)
@@ -452,14 +486,24 @@ class Game:
             for enemy in self.enemies:
                 enemy.draw(self.screen, self.camera_x, self.camera_y)
 
+            # Draw boss
+            if self.boss and self.boss.health > 0:
+                self.boss.draw(self.screen, self.camera_x, self.camera_y)
+
+            # Draw boss projectiles
+            for bp in self.boss_projectiles:
+                bp.draw(self.screen, self.camera_x, self.camera_y)
+
             # Draw projectiles
             for projectile in self.projectiles:
                 projectile.draw(self.screen, self.camera_x, self.camera_y)
 
             # Timer
-            remaining_time = self.update_timer()
-            timer_text = self.font.render(f"Time: {remaining_time}", True, (255, 255, 255))
-            self.screen.blit(timer_text, (20, 100))
+            if self.settings.level_data.current_level != 3:
+                remaining_time = self.update_timer()
+                if remaining_time != "Last Level":
+                    timer_text = self.font.render(f"Time: {remaining_time}", True, (255, 255, 255))
+                    self.screen.blit(timer_text, (20, 100))
 
             # Element indicator
             current_element = self.element_indicators[self.player_element]

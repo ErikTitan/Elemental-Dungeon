@@ -93,6 +93,8 @@ class GameSettings:
     def load_audio(self):
         self.hit_sound = pygame.mixer.Sound("assets/audio/Hit.wav")
         self.hit_sound.set_volume(self.HIT_SOUND_VOLUME)
+        self.boss_fly_sound = pygame.mixer.Sound("assets/audio/boss_fly.wav")
+        self.boss_fire_sound = pygame.mixer.Sound("assets/audio/boss_fire.wav")
 
         self.shoot_sounds = {
             "fire": pygame.mixer.Sound("assets/audio/Fire.wav"),
