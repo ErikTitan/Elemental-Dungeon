@@ -39,11 +39,16 @@ class Game:
         # Game state
         self.game_duration = self.settings.GAME_DURATION
         self.start_time = pygame.time.get_ticks()
+        self.total_level_time = 0
+        self.level_start_time = 0
+        self.in_level_time = 0
         self.font = pygame.font.Font(None, 48)
         self.game_started = False
         self.game_over = False
         self.game_won = False
         self.total_coins = 0
+        self.coin_count = 0
+        self.coins = []
 
         # Level progression
         self.has_key = False
@@ -54,7 +59,6 @@ class Game:
         self.shop = Shop(self.screen.get_width(), self.screen.get_height())
         self.in_shop = False
         self.movement_speed_level = 0
-        self.fire_rate_level = 0
 
         self.background_music.play(loops=-1)
         self.create_map()
@@ -73,6 +77,14 @@ class Game:
         self.last_shot_time = 0
         self.boss = None
         self.boss_projectiles = []
+        self.base_enemy_limit = 12
+        self.current_enemy_limit = self.base_enemy_limit
+
+        # upgrades
+        self.movement_speed_level = 0
+        self.fire_rate_level = 0
+        self.life_steal_level = 0
+        self.life_steal_chance = 0
 
         self.reset_game()
 
@@ -101,11 +113,10 @@ class Game:
                     return x, y
 
     def spawn_enemy(self):
-        if len(self.enemies) < 10 and self.spawn_timer <= 0:
+        if len(self.enemies) < self.current_enemy_limit:
             spawn_pos = self.get_random_spawn_position()
             element = random.choice(["fire", "water", "ground", "air"])
             self.enemies.append(Enemy(*spawn_pos, element))
-            self.spawn_timer = self.spawn_delay
 
     def spawn_key(self):
         valid_positions = []
@@ -144,6 +155,8 @@ class Game:
                 return False
             if keys[pygame.K_r]:
                 self.reset_game()
+                self.total_coins = 0
+                self.coin_count = 0
             return True
 
         # shop
@@ -199,15 +212,14 @@ class Game:
         return True
 
     def update(self):
-        if self.in_shop:
-            return
-
-        if not self.game_started or self.game_over:
+        if not self.game_started or self.game_over or self.in_shop:
             return
 
         # update hraca
         self.player.update()
         self.player.apply_knockback(self.walls)
+        current_time = pygame.time.get_ticks()
+        self.in_level_time = (current_time - self.level_start_time) // 1000
 
         # player-enemy kolizia
         if self.player.is_alive:
@@ -303,7 +315,9 @@ class Game:
 
         # spawn enemy
         self.spawn_timer -= 1
-        self.spawn_enemy()
+        if self.spawn_timer <= 0:
+            self.spawn_enemy()
+            self.spawn_timer = self.spawn_delay
 
     def update_timer(self):
         if self.settings.level_data.current_level == 3:
@@ -315,12 +329,14 @@ class Game:
         return remaining_time
 
     def progress_to_next_level(self):
+        self.total_level_time += self.in_level_time
         self.total_coins = self.coin_count
         self.in_shop = True
 
     def win_game(self):
         self.game_over = True
         self.game_won = True
+        self.total_level_time += self.in_level_time
         self.background_music.stop()
 
     def end_game(self):
@@ -339,7 +355,9 @@ class Game:
         self.projectiles = []
         self.player_element = "fire"
         self.spawn_timer = 0
-        self.spawn_delay = 180
+        self.spawn_delay = 100
+        self.level_start_time = pygame.time.get_ticks()
+        self.in_level_time = 0
         self.can_shoot = True
         self.base_shoot_cooldown = 300
         self.last_shot_time = 0
@@ -350,14 +368,11 @@ class Game:
         self.player.speed = self.player.base_speed * (1 + self.movement_speed_level * 0.1)
         self.base_shoot_cooldown = int(300 * (1 - self.fire_rate_level * 0.2))
         self.player.current_health = self.player.max_health
-        self.life_steal_level = 0
-        self.life_steal_chance = 0
 
         # key and coin spawn
         self.has_key = False
         self.key_position = None
         self.coins = []
-        self.coin_count = self.total_coins
         self.ladder_cover_removed_time = None
         if self.settings.level_data.current_level != 3:
             self.spawn_key()
@@ -374,7 +389,17 @@ class Game:
                 if tile == 'Q':
                     self.ladder_position = (x * self.TILE_SIZE, y * self.TILE_SIZE)
 
-        # boss spawn
+        # enemy limits
+        if self.settings.level_data.current_level == 0:
+            self.current_enemy_limit = self.base_enemy_limit
+        elif self.settings.level_data.current_level == 1:
+            self.current_enemy_limit = self.base_enemy_limit + 4
+        elif self.settings.level_data.current_level == 2:
+            self.current_enemy_limit = self.base_enemy_limit + 5
+        elif self.settings.level_data.current_level == 3:
+            self.current_enemy_limit = self.base_enemy_limit + 6
+
+            # boss spawn
         if self.settings.level_data.current_level == 3:
             self.boss = Boss(1000, 1000 )
         else:
@@ -391,26 +416,35 @@ class Game:
             font = pygame.font.Font(None, 74)
             title_text = font.render('Elemental Dungeon', True, (255, 255, 255))
             start_text = font.render('Press Any Key to Start', True, (255, 255, 255))
-            controls_font = pygame.font.Font(None, 48)  # Using existing font size
 
-            # Controls text
+            objective_font = pygame.font.Font(None, 48)
+            objective_text1 = objective_font.render('Survive 60 seconds or', True, (255, 255, 255))
+            objective_text2 = objective_font.render('Find the key and unlock the ladder!', True, (255, 255, 255))
+
+            controls_font = pygame.font.Font(None, 48)
             move_text = controls_font.render('WASD - Move Character', True, (255, 255, 255))
-            element_text = controls_font.render('1-4 - Switch Elements', True, (255, 255, 255))
+            element_text = controls_font.render('1-4 (or scroll) - Switch Elements', True, (255, 255, 255))
             shoot_text = controls_font.render('Left Mouse Button - Shoot', True, (255, 255, 255))
 
             # Position calculations
             title_rect = title_text.get_rect(center=(self.screen.get_width() // 2,
-                                                     self.screen.get_height() // 2 - 150))
+                                                     self.screen.get_height() // 2 - 200))
+            objective1_rect = objective_text1.get_rect(center=(self.screen.get_width() // 2,
+                                                               self.screen.get_height() // 2 - 100))
+            objective2_rect = objective_text2.get_rect(center=(self.screen.get_width() // 2,
+                                                               self.screen.get_height() // 2 - 50))
             start_rect = start_text.get_rect(center=(self.screen.get_width() // 2,
-                                                     self.screen.get_height() // 2 - 50))
+                                                     self.screen.get_height() // 2 + 25))
             move_rect = move_text.get_rect(center=(self.screen.get_width() // 2,
-                                                   self.screen.get_height() // 2 + 50))
+                                                   self.screen.get_height() // 2 + 100))
             element_rect = element_text.get_rect(center=(self.screen.get_width() // 2,
-                                                         self.screen.get_height() // 2 + 100))
+                                                         self.screen.get_height() // 2 + 150))
             shoot_rect = shoot_text.get_rect(center=(self.screen.get_width() // 2,
-                                                     self.screen.get_height() // 2 + 150))
+                                                     self.screen.get_height() // 2 + 200))
 
             self.screen.blit(title_text, title_rect)
+            self.screen.blit(objective_text1, objective1_rect)
+            self.screen.blit(objective_text2, objective2_rect)
             self.screen.blit(start_text, start_rect)
             self.screen.blit(move_text, move_rect)
             self.screen.blit(element_text, element_rect)
@@ -524,6 +558,12 @@ class Game:
             if self.has_key:
                 self.screen.blit(self.decoration_tiles['K'], (10, 220))
 
+            # boss hp
+            if self.boss and self.boss.health > 0 and not self.game_over:
+                boss_hp_text = self.font.render(f"Boss HP: {self.boss.health}", True, (255, 0, 0))
+                text_rect = boss_hp_text.get_rect(center=(self.screen.get_width() // 2, 20))
+                self.screen.blit(boss_hp_text, text_rect)
+
         # Game over
         if self.game_over and not self.game_won:
             font = pygame.font.Font(None, 74)
@@ -547,10 +587,20 @@ class Game:
         # Win screen
         if self.game_over and self.game_won:
             font = pygame.font.Font(None, 74)
-            win_text = font.render('Congratulations!', True, (0, 255, 0))
+            win_text = font.render('Congratulations! You have won!', True, (0, 255, 0))
+            time_font = pygame.font.Font(None, 48)
+
+            minutes = self.total_level_time // 60
+            seconds = self.total_level_time % 60
+            time_text = time_font.render(f'Total Time: {minutes:02d}:{seconds:02d}', True, (255, 255, 255))
+
             text_rect = win_text.get_rect(center=(self.screen.get_width() // 2,
-                                                  self.screen.get_height() // 2))
+                                                  self.screen.get_height() // 2 - 50))
+            time_rect = time_text.get_rect(center=(self.screen.get_width() // 2,
+                                                   self.screen.get_height() // 2 + 50))
+
             self.screen.blit(win_text, text_rect)
+            self.screen.blit(time_text, time_rect)
 
         pygame.display.flip()
 

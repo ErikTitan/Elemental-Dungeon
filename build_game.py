@@ -22,6 +22,7 @@ def copy_assets(exe_dir):
         "assets/decorations",
         "assets/audio",
         "assets/HUD",
+        "assets/boss",
         "assets/projectiles",
         "assets/characters"
     ]

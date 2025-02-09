@@ -13,11 +13,11 @@ class GameSettings:
         # Game settings
         self.GAME_DURATION = 60
         self.MAX_ENEMIES = 10
-        self.SPAWN_DELAY = 180
+        self.SPAWN_DELAY = 130
         self.SHOOT_COOLDOWN = 300
 
         # Audio settings
-        self.BACKGROUND_MUSIC_VOLUME = 0
+        self.BACKGROUND_MUSIC_VOLUME = 0.3
         self.HIT_SOUND_VOLUME = 0.6
 
         # Initialize assets
